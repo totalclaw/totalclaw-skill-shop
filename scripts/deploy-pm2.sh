@@ -144,6 +144,12 @@ configure_nginx() {
   [ -z "$SITES" ] && { $SUDO mkdir -p "$NGINX_DIR/conf.d"; SITES="$NGINX_DIR/conf.d"; }
   log "nginx 主配置=$MAINCONF  vhost 目录=$SITES"
 
+  # 清理历史误写位置（stream/tcp 段、/etc/nginx/conf.d）的残留，避免坏配置让 nginx -t 失败
+  for stale in /www/server/panel/vhost/nginx/tcp /etc/nginx/conf.d "$NGINX_DIR/conf.d"; do
+    [ "$stale" = "$SITES" ] && continue
+    $SUDO rm -f "$stale/skill-shop.conf" "$stale/skill-shop-locations.inc" 2>/dev/null || true
+  done
+
   # 反代 location（/api→API、/→前台）。用 sudo tee 写入（重定向 > 由非 root shell 执行会权限失败）
   local INC_ABS="$SITES/skill-shop-locations.inc"
   sed -e "s#__API_PORT__#$API_PORT#g" -e "s#__PORT__#$WEB_PORT#g" \
