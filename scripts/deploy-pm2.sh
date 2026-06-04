@@ -118,41 +118,46 @@ npx pm2 save 2>/dev/null || true
 configure_nginx() {
   command -v nginx >/dev/null 2>&1 || { warn "未装 nginx，跳过（手动反代：/api→$API_PORT，/→$WEB_PORT）"; return 0; }
 
+  # 写 /etc/nginx、nginx -t（要读 600 权限的私钥）、reload 都需要 root；非 root 用 sudo
+  local SUDO=""
+  if [ "$(id -u)" -ne 0 ]; then
+    if command -v sudo >/dev/null 2>&1; then SUDO="sudo"; else
+      warn "非 root 且无 sudo：无法写入 /etc/nginx。请用 root 重跑（sudo -E npm run deploy）或手动配 nginx。"; return 0
+    fi
+  fi
+
   local NGINX_DIR; NGINX_DIR="$(nginx -V 2>&1 | grep -oE 'conf-path=[^ ]+' | head -1 | cut -d= -f2 | xargs dirname 2>/dev/null)"
   [ -z "$NGINX_DIR" ] && NGINX_DIR="/etc/nginx"
   local SITES=""; for d in /www/server/panel/vhost/nginx "$NGINX_DIR/conf.d" "$NGINX_DIR/sites-enabled"; do
     [ -d "$d" ] && { SITES="$d"; break; }
   done
-  [ -z "$SITES" ] && { mkdir -p "$NGINX_DIR/conf.d"; SITES="$NGINX_DIR/conf.d"; }
+  [ -z "$SITES" ] && { $SUDO mkdir -p "$NGINX_DIR/conf.d"; SITES="$NGINX_DIR/conf.d"; }
 
-  # 反代 location（/api→API、/→前台）
+  # 反代 location（/api→API、/→前台）。用 sudo tee 写入（重定向 > 由非 root shell 执行会权限失败）
   local INC_ABS="$SITES/skill-shop-locations.inc"
   sed -e "s#__API_PORT__#$API_PORT#g" -e "s#__PORT__#$WEB_PORT#g" \
-    scripts/nginx-skillshop-locations.inc.template > "$INC_ABS"
+    scripts/nginx-skillshop-locations.inc.template | $SUDO tee "$INC_ABS" >/dev/null
 
   local CONF="$SITES/skill-shop.conf"
   if [ "$HAS_CERT" = "1" ]; then
-    # 完整 80→443 + 443 SSL 子域 vhost
     sed -e "s#__SERVER_NAME__#$SERVER_NAME#g" \
         -e "s#__SSL_CERT__#$SSL_CERT#g" -e "s#__SSL_KEY__#$SSL_KEY#g" \
         -e "s#__LOCATIONS_INCLUDE_ABS__#$INC_ABS#g" \
-      scripts/nginx-skillshop-vhost.conf.template > "$CONF"
+      scripts/nginx-skillshop-vhost.conf.template | $SUDO tee "$CONF" >/dev/null
     log "已写入 80+443 子域 vhost：$CONF（server_name=$SERVER_NAME，证书 $SSL_CERT）"
   else
-    # 无证书：先只起 80（HTTP），并提示去签证书
     sed -e "s#__SERVER_NAME__#$SERVER_NAME#g" -e "s#__SERVER_NAME_EXTRA__##g" \
         -e "s#__LOCATIONS_INCLUDE_ABS__#$INC_ABS#g" \
-      scripts/nginx-skillshop-http-server.conf.template > "$CONF"
-    warn "未找到证书（$SSL_CERT）→ 暂只生成 80(HTTP) vhost。"
-    warn "  请先在宝塔给 $SERVER_NAME 申请证书（或设 SSL_CERT/SSL_KEY），再重跑本脚本启用 443。"
-    warn "  注意：SSO 的 .taituai.com cookie 需要 Secure(HTTPS)，没证书前跨子域登录不会生效。"
+      scripts/nginx-skillshop-http-server.conf.template | $SUDO tee "$CONF" >/dev/null
+    warn "未找到证书（$SSL_CERT）→ 暂只生成 80(HTTP) vhost。请签证书后重跑启用 443。"
   fi
 
-  if nginx -t 2>/dev/null; then
-    nginx -s reload 2>/dev/null || systemctl reload nginx 2>/dev/null || service nginx reload 2>/dev/null || true
-    log "nginx 配置已生效"
+  # 校验（保留报错输出，便于排查）+ reload
+  if $SUDO nginx -t; then
+    $SUDO nginx -s reload 2>/dev/null || $SUDO systemctl reload nginx 2>/dev/null || $SUDO service nginx reload 2>/dev/null || true
+    log "nginx 配置已生效：$CONF"
   else
-    warn "nginx -t 校验失败，请手动检查 $CONF"
+    warn "nginx -t 校验失败（见上方报错），$CONF 未生效"
   fi
 }
 [ "${SKIP_NGINX:-0}" = "1" ] && log "跳过 nginx 配置" || configure_nginx
