@@ -11,5 +11,3 @@ data/
 certs/*
 !certs/README.md
 
-# 技能数据种子不入库（太大，单独传/导）
-seed/

@@ -195,7 +195,18 @@ configure_nginx() {
 }
 [ "${SKIP_NGINX:-0}" = "1" ] && log "跳过 nginx 配置" || configure_nginx
 
-# ---------- 7) 首次同步：站点已上线后，后台跑（绝不阻塞部署） ----------
+# ---------- 7) 数据种子：生产 skills 偏少时，导入仓库内 seed/skills（幂等 --drop） ----------
+if [ "${SKIP_SEED:-0}" != "1" ] && ls seed/skills/skills.ndjson.gz.part-* >/dev/null 2>&1; then
+  CUR="$(curl -s "http://127.0.0.1:${API_PORT}/api/skills?pageSize=1" | grep -oE '"total":[0-9]+' | head -1 | grep -oE '[0-9]+')"
+  if [ "${CUR:-0}" -lt 1000 ]; then
+    log "生产技能数=${CUR:-0}（偏少）→ 导入仓库种子 seed/skills"
+    bash scripts/import-seed.sh || warn "种子导入失败，可手动：bash scripts/import-seed.sh"
+  else
+    log "生产已有 ${CUR} 个技能，跳过种子导入（如需重导：bash scripts/import-seed.sh）"
+  fi
+fi
+
+# ---------- 8) 首次同步：站点已上线后，后台跑（绝不阻塞部署） ----------
 if [ "${SKIP_SYNC:-0}" != "1" ]; then
   mkdir -p data/logs
   nohup npm run sync:local > data/logs/sync.log 2>&1 &
