@@ -220,7 +220,8 @@ main h2::before {
 .cat-major { margin: 0; gap: 10px; }
 .cat-major .cat-major-tab { font-weight: 600; padding: 9px 20px; font-size: 14.5px; }
 .cat-minor { margin: 12px 0 0; padding: 14px 16px; gap: 8px; background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); }
-.cat-minor .src-tab { font-size: 13px; padding: 6px 13px; background: var(--bg1); }
+.cat-minor .src-tab { font-size: 13px; padding: 6px 13px; }
+.cat-minor .src-tab:not(.active) { background: var(--bg1); }
 
 .list-search { display: flex; gap: 0; margin: 6px 0 14px; max-width: 540px; }
 .list-search input { flex: 1; background: var(--bg1); border: 1px solid var(--line); color: var(--text); padding: 12px 15px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); outline: none; }
