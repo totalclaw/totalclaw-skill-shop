@@ -169,8 +169,17 @@ configure_nginx() {
     if $SUDO nginx -T 2>/dev/null | grep -q "$SERVER_NAME"; then
       log "已确认 server_name=$SERVER_NAME 被 nginx 加载 ✓"
     else
-      warn "配置已写入 $CONF，但 nginx 未加载它 —— 主配置可能没 include $SITES。"
-      warn "  手动修复：在 nginx.conf 的 http{} 里加一行  include ${SITES}/*.conf;  再 sudo nginx -s reload"
+      warn "nginx 未加载 $CONF（主配置没 include $SITES）→ 自动向 $MAINCONF 的 http{} 注入 include"
+      if ! $SUDO grep -qE "include[[:space:]]+${SITES}/\*\.conf" "$MAINCONF" 2>/dev/null; then
+        $SUDO cp "$MAINCONF" "${MAINCONF}.bak.skillshop" 2>/dev/null || true
+        $SUDO sed -i "0,/^[[:space:]]*http[[:space:]]*{/s##&\n    include ${SITES}/*.conf;#" "$MAINCONF"
+      fi
+      $SUDO nginx -t && { $SUDO nginx -s reload 2>/dev/null || $SUDO systemctl reload nginx 2>/dev/null || true; }
+      if $SUDO nginx -T 2>/dev/null | grep -q "$SERVER_NAME"; then
+        log "已注入 include 并生效，server_name=$SERVER_NAME 现已加载 ✓"
+      else
+        warn "自动注入未生效。请手动在 $MAINCONF 的 http{} 加：include ${SITES}/*.conf;  再 sudo nginx -s reload（备份 ${MAINCONF}.bak.skillshop）"
+      fi
     fi
   else
     warn "nginx -t 校验失败（见上方报错），$CONF 未生效"
