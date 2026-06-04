@@ -223,6 +223,16 @@ main h2::before {
 .cat-minor .src-tab { font-size: 13px; padding: 6px 13px; }
 .cat-minor .src-tab:not(.active) { background: var(--bg1); }
 
+/* 技能库「更多分类」折叠 */
+.cat-more { margin: 8px 0 4px; }
+.cat-more > summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; width: fit-content;
+  padding: 7px 16px; border-radius: var(--radius-full); border: 1px dashed var(--border-strong); color: var(--accent); font-size: 14px; background: var(--bg1); }
+.cat-more > summary::-webkit-details-marker { display: none; }
+.cat-more > summary::after { content: '▾'; font-size: 12px; transition: transform .2s; }
+.cat-more[open] > summary::after { transform: rotate(180deg); }
+.cat-more > summary:hover { border-color: var(--accent); }
+.cat-more .src-filter { margin-top: 10px; padding: 14px 16px; background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); }
+
 .list-search { display: flex; gap: 0; margin: 6px 0 14px; max-width: 540px; }
 .list-search input { flex: 1; background: var(--bg1); border: 1px solid var(--line); color: var(--text); padding: 12px 15px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); outline: none; }
 .list-search input:focus { border-color: var(--border-strong); box-shadow: 0 0 0 3px var(--accent-dim); }

@@ -87,7 +87,10 @@ ${footer()}`;
         api().get('/skills/categories').catch(() => ({ data: [] })),
       ]);
       const items = data.items || [];
-      const categories = (cats.data || []).slice(0, 30); // 分类快捷入口（融合自原「分类」菜单）
+      // 分类快捷入口（融合自原「分类」菜单）：常用 30 个直显，其余收进「更多分类」
+      const allCats = cats.data || [];
+      const shownCats = allCats.slice(0, 30);
+      const moreCats = allCats.slice(30);
       const q = req.query.q ? `“${escapeHtml(req.query.q)}” ` : '';
       const pager = buildPager(data.page, data.totalPages, req.query);
       const sortVal = req.query.sort || 'latest';
@@ -117,7 +120,11 @@ ${footer()}`;
   </form>
   <div class="src-filter">${ltTab('', '全部')}${ltTab('free', '免费')}${ltTab('paid', '收费')}</div>
   ${sourceFilter(req.query.source, req.query)}
-  <div class="src-filter cat-shortcuts">${catTab('', '全部分类')}${categories.map((c) => catTab(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
+  <div class="src-filter cat-shortcuts">${catTab('', '全部分类')}${shownCats.map((c) => catTab(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
+  ${moreCats.length ? `<details class="cat-more"${moreCats.some((c) => (c._id || 'other') === catVal) ? ' open' : ''}>
+    <summary>更多分类（${moreCats.length}）</summary>
+    <div class="src-filter">${moreCats.map((c) => catTab(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
+  </details>` : ''}
   <div class="list-toolbar">
     <span class="active-filters">${activeFilterChips(req.query)}</span>
     <form class="sort-form" action="/skills" method="get">
