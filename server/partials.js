@@ -61,11 +61,8 @@ function header(active) {
       <span class="brand-text"><b>泰途AI</b><i>Skill 市场</i></span>
     </a>
     <nav>
-      ${link('/skills', '全部', 'skills')}
-      ${link('/roles', 'AI 员工岗位库', 'roles')}
-      ${link('/skills?listingType=free', '免费', 'free')}
-      ${link('/skills?listingType=paid', '收费', 'paid')}
-      ${link('/categories', '分类', 'categories')}
+      ${link('/skills', '技能库', 'skills')}
+      ${link('/roles', 'AI 员工库', 'roles')}
       ${link('/developer', '开发者', 'developer')}
     </nav>
     <form class="search" action="/skills" method="get" role="search">

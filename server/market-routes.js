@@ -82,8 +82,12 @@ ${footer()}`;
         page: req.query.page || 1,
         pageSize: 24,
       };
-      const { data } = await api().get('/skills', { params });
+      const [{ data }, cats] = await Promise.all([
+        api().get('/skills', { params }),
+        api().get('/skills/categories').catch(() => ({ data: [] })),
+      ]);
       const items = data.items || [];
+      const categories = (cats.data || []).slice(0, 30); // 分类快捷入口（融合自原「分类」菜单）
       const q = req.query.q ? `“${escapeHtml(req.query.q)}” ` : '';
       const pager = buildPager(data.page, data.totalPages, req.query);
       const sortVal = req.query.sort || 'latest';
@@ -93,15 +97,27 @@ ${footer()}`;
         .filter((k) => req.query[k])
         .map((k) => `<input type="hidden" name="${k}" value="${escapeHtml(req.query[k])}">`)
         .join('');
-      const body = `${header(req.query.listingType || 'skills')}
+      // 保留其它筛选、切换某个参数的 URL
+      const qsFrom = (over) => {
+        const o = { ...req.query, ...over, page: undefined };
+        const s = Object.entries(o).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+        return s ? '?' + s : '';
+      };
+      const ltVal = req.query.listingType || '';
+      const ltTab = (v, label) => `<a class="src-tab ${ltVal === v ? 'active' : ''}" href="/skills${qsFrom({ listingType: v || undefined })}">${label}</a>`;
+      const catVal = req.query.category || '';
+      const catTab = (c, label) => `<a class="src-tab ${catVal === c ? 'active' : ''}" href="/skills${qsFrom({ category: c || undefined })}">${escapeHtml(label)}</a>`;
+      const body = `${header('skills')}
 <main class="wrap">
-  <h1>${q || ''}Skill 列表 <small>${data.total} 个</small></h1>
+  <h1>${q || ''}技能库 <small>${data.total} 个</small></h1>
   <form class="list-search" action="/skills" method="get" role="search">
     ${['category', 'source', 'tag', 'listingType'].filter((k) => req.query[k]).map((k) => `<input type="hidden" name="${k}" value="${escapeHtml(req.query[k])}">`).join('')}
     <input type="search" name="q" value="${escapeHtml(req.query.q || '')}" placeholder="搜索 skill 名称 / 关键词…" aria-label="搜索">
     <button type="submit">搜索</button>
   </form>
+  <div class="src-filter">${ltTab('', '全部')}${ltTab('free', '免费')}${ltTab('paid', '收费')}</div>
   ${sourceFilter(req.query.source, req.query)}
+  <div class="src-filter cat-shortcuts">${catTab('', '全部分类')}${categories.map((c) => catTab(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
   <div class="list-toolbar">
     <span class="active-filters">${activeFilterChips(req.query)}</span>
     <form class="sort-form" action="/skills" method="get">
@@ -117,13 +133,13 @@ ${footer()}`;
   ${pager}
 </main>
 ${footer()}`;
-      res.send(renderPage({ title: `${q}Skill 列表`, body, canonicalPath: '/skills' }));
+      res.send(renderPage({ title: `${q}技能库`, body, canonicalPath: '/skills' }));
     } catch (e) {
       res.status(502).send(renderPage({ title: '加载失败', body: `${header()}<main class="wrap"><p>API 不可用：${escapeHtml(e.message)}</p></main>${footer()}` }));
     }
   });
 
-  // AI 员工岗位库（kind=role）：专属浏览页
+  // AI 员工库（kind=role）：专属浏览页
   router.get('/roles', async (req, res) => {
     try {
       // 先取角色分类，按大类拆分（通用岗位职能 / 行业领域）
@@ -165,14 +181,14 @@ ${footer()}`;
   <section class="hero roles-hero">
     <div class="hero-inner">
       <div class="hero-copy">
-        <span class="hero-kicker">TotalClaw AI 员工岗位库 · 即买即用的岗位人格</span>
-        <h1>AI <span class="grad">员工岗位库</span></h1>
+        <span class="hero-kicker">TotalClaw AI 员工库 · 即买即用的岗位人格</span>
+        <h1>AI <span class="grad">员工库</span></h1>
         <p>覆盖研发、设计、营销、销售、金融、法律等岗位的专家级 Agent 人格，购买后即可下载部署，让 AI 按真实岗位标准工作。</p>
         <form class="hero-search" action="/roles" method="get" role="search">
           <input type="search" name="q" value="${escapeHtml(req.query.q || '')}" placeholder="搜索员工 / 岗位…" aria-label="搜索员工">
           <button type="submit">搜索</button>
         </form>
-        <p class="hero-stat">已上架 <strong>${data.total || 0}</strong> 个 AI 员工岗位</p>
+        <p class="hero-stat">已上架 <strong>${data.total || 0}</strong> 个 AI 员工</p>
       </div>
     </div>
   </section>
@@ -180,12 +196,12 @@ ${footer()}`;
     <div class="src-filter cat-major">${majorTab('', '全部')}${majorTab('func', '通用岗位职能')}${majorTab('ind', '行业领域')}</div>
     ${activeGroup ? `<div class="cat-minor src-filter">${minorChip(activeGroup, '', '全部' + (activeGroup === 'func' ? '职能' : '行业'))}${activeList.map((c) => minorChip(activeGroup, c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>` : ''}
   </div>
-  <h2>${q || ''}AI 员工岗位 <small>${data.total} 个</small></h2>
-  <div class="grid">${items.length ? items.map(skillCard).join('') : '<p class="empty">暂无员工岗位，运行 scripts/roles 生成。</p>'}</div>
+  <h2>${q || ''}AI 员工 <small>${data.total} 个</small></h2>
+  <div class="grid">${items.length ? items.map(skillCard).join('') : '<p class="empty">暂无员工，运行 scripts/roles 生成。</p>'}</div>
   ${pager}
 </main>
 ${footer()}`;
-      res.send(renderPage({ title: 'TotalClaw AI 员工岗位库', body, canonicalPath: '/roles' }));
+      res.send(renderPage({ title: 'TotalClaw AI 员工库', body, canonicalPath: '/roles' }));
     } catch (e) {
       res.status(502).send(renderPage({ title: '加载失败', body: `${header('roles')}<main class="wrap"><p>API 不可用：${escapeHtml(e.message)}</p></main>${footer()}` }));
     }
@@ -289,7 +305,7 @@ ${footer()}`;
   <div class="auth-head">
     <img src="/assets/img/logo-mark.png" alt="泰途AI" class="auth-logo">
     <h1>登录</h1>
-    <p class="auth-sub">登录 TotalClaw Skill 市场，购买与下载你的 AI 员工岗位与技能</p>
+    <p class="auth-sub">登录 TotalClaw Skill 市场，购买与下载你的 AI 员工与技能</p>
   </div>
   <form id="loginForm" class="card-form">
     <label>用户名<input name="username" required minlength="3"></label>
@@ -310,7 +326,7 @@ ${footer()}`;
   <div class="auth-head">
     <img src="/assets/img/logo-mark.png" alt="泰途AI" class="auth-logo">
     <h1>注册</h1>
-    <p class="auth-sub">创建账号，即刻拥有你的 AI 员工岗位与技能库</p>
+    <p class="auth-sub">创建账号，即刻拥有你的 AI 员工与技能库</p>
   </div>
   <form id="registerForm" class="card-form">
     <label>用户名<input name="username" required minlength="3"></label>
