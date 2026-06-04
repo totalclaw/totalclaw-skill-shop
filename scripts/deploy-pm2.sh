@@ -32,7 +32,9 @@ if [ -z "$SERVER_NAME" ]; then
   SERVER_NAME="$(curl -s -m 5 https://api.ipify.org 2>/dev/null || true)"
   [ -z "$SERVER_NAME" ] && SERVER_NAME="_"
 fi
-# 证书路径（宝塔约定）；据此判断用 https 还是 http
+# 证书路径：① 显式 SSL_CERT/SSL_KEY > ② 项目内 certs/<域名>.{pem,key} > ③ 宝塔默认路径
+if [ -z "${SSL_CERT:-}" ] && [ -f "$ROOT/certs/${SERVER_NAME}.pem" ]; then SSL_CERT="$ROOT/certs/${SERVER_NAME}.pem"; fi
+if [ -z "${SSL_KEY:-}" ]  && [ -f "$ROOT/certs/${SERVER_NAME}.key" ]; then SSL_KEY="$ROOT/certs/${SERVER_NAME}.key"; fi
 SSL_CERT="${SSL_CERT:-/www/server/panel/vhost/cert/${SERVER_NAME}/fullchain.pem}"
 SSL_KEY="${SSL_KEY:-/www/server/panel/vhost/cert/${SERVER_NAME}/privkey.pem}"
 HAS_CERT=0; [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ] && HAS_CERT=1

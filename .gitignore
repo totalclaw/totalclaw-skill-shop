@@ -6,3 +6,7 @@ api/dist/
 .DS_Store
 scripts/sync/.sync-progress.json
 data/
+
+# SSL 证书与私钥（绝不入库）
+certs/*
+!certs/README.md
