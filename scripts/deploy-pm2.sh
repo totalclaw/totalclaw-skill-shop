@@ -126,12 +126,21 @@ configure_nginx() {
     fi
   fi
 
-  local NGINX_DIR; NGINX_DIR="$(nginx -V 2>&1 | grep -oE 'conf-path=[^ ]+' | head -1 | cut -d= -f2 | xargs dirname 2>/dev/null)"
-  [ -z "$NGINX_DIR" ] && NGINX_DIR="/etc/nginx"
-  local SITES=""; for d in /www/server/panel/vhost/nginx "$NGINX_DIR/conf.d" "$NGINX_DIR/sites-enabled"; do
-    [ -d "$d" ] && { SITES="$d"; break; }
-  done
+  # 用「正在运行的」主配置（nginx -t 会打印其路径），而非 nginx -V 的编译默认（宝塔下两者不同！）
+  local MAINCONF; MAINCONF="$($SUDO nginx -t 2>&1 | grep -oE '/[^ ]+nginx\.conf' | head -1)"
+  [ -z "$MAINCONF" ] && MAINCONF="$(nginx -V 2>&1 | grep -oE 'conf-path=[^ ]+' | head -1 | cut -d= -f2)"
+  [ -z "$MAINCONF" ] && MAINCONF="/etc/nginx/nginx.conf"
+  local NGINX_DIR; NGINX_DIR="$(dirname "$MAINCONF")"
+  # 优先：主配置里 include 的、且真实存在的 vhost 目录（宝塔/标准布局都能命中）
+  local SITES=""
+  SITES="$($SUDO grep -hoE 'include[[:space:]]+/[^;*]+\*\.conf' "$MAINCONF" 2>/dev/null | awk '{print $2}' | sed 's#/\*\.conf$##' | while read -r p; do [ -d "$p" ] && { echo "$p"; break; }; done)"
+  if [ -z "$SITES" ]; then
+    for d in /www/server/panel/vhost/nginx "$NGINX_DIR/conf.d" "$NGINX_DIR/sites-enabled" /etc/nginx/conf.d; do
+      [ -d "$d" ] && { SITES="$d"; break; }
+    done
+  fi
   [ -z "$SITES" ] && { $SUDO mkdir -p "$NGINX_DIR/conf.d"; SITES="$NGINX_DIR/conf.d"; }
+  log "nginx 主配置=$MAINCONF  vhost 目录=$SITES"
 
   # 反代 location（/api→API、/→前台）。用 sudo tee 写入（重定向 > 由非 root shell 执行会权限失败）
   local INC_ABS="$SITES/skill-shop-locations.inc"
