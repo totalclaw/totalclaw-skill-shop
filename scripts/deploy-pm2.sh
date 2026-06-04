@@ -66,8 +66,17 @@ log "安装前台依赖"
 npm ci 2>/dev/null || npm install
 
 if [ "${SKIP_API:-0}" != "1" ]; then
-  log "安装并构建 API"
-  ( cd api && { npm ci 2>/dev/null || npm install; } && npm run build )
+  log "安装 API 依赖"
+  ( cd api && { npm ci 2>/dev/null || npm install; } )
+  log "构建 API（tsc 静默编译，首次约 1-3 分钟，无输出属正常，请耐心）…"
+  BUILD_TIMEOUT="${BUILD_TIMEOUT:-900}"
+  if command -v timeout >/dev/null 2>&1; then
+    ( cd api && timeout "$BUILD_TIMEOUT" npm run build ) \
+      || { warn "API 构建失败/超时(${BUILD_TIMEOUT}s)，多为小内存机 OOM。处理：加 swap 后重试，或本地构建后把 api/dist 传上来再 SKIP_API=1 npm run deploy"; exit 1; }
+  else
+    ( cd api && npm run build )
+  fi
+  log "API 构建完成 ✓"
 fi
 
 # ---------- 2) api/.env（与 web 共享 totalclaw；自动补密钥） ----------
@@ -99,11 +108,7 @@ if [ "${SKIP_MONGO:-0}" != "1" ] && grep -qE '127\.0\.0\.1:27018/' api/.env 2>/d
   docker compose up -d 2>/dev/null || warn "docker 不可用：请确保 MONGODB_URI 指向的库可达"
 fi
 
-# ---------- 4) 首次同步（可跳过） ----------
-if [ "${SKIP_SYNC:-0}" != "1" ]; then
-  log "首次全量同步（本地源，失败不阻断）"
-  npm run sync:local || warn "同步失败，可稍后手动 npm run sync"
-fi
+# 注：首次同步已移到最后「后台」执行（见步骤 7），避免网络/Mongo 卡死阻塞站点上线。
 
 # ---------- 5) PM2（把 PUBLIC_ORIGIN 透传给前台，页面命令才显示真实域名） ----------
 log "启动 / 重载 PM2（skill-shop-web :$WEB_PORT，skill-shop-api :$API_PORT）"
@@ -154,6 +159,14 @@ configure_nginx() {
 }
 [ "${SKIP_NGINX:-0}" = "1" ] && log "跳过 nginx 配置" || configure_nginx
 
+# ---------- 7) 首次同步：站点已上线后，后台跑（绝不阻塞部署） ----------
+if [ "${SKIP_SYNC:-0}" != "1" ]; then
+  mkdir -p data/logs
+  nohup npm run sync:local > data/logs/sync.log 2>&1 &
+  log "首次同步已在后台启动（日志 data/logs/sync.log；不阻塞本次部署）"
+fi
+
 echo
 log "完成 ✅  前台 :$WEB_PORT  API :$API_PORT（Swagger /api/docs）"
 log "    对外 $PUBLIC_ORIGIN  共享库 totalclaw"
+log "    同步在后台进行：tail -f data/logs/sync.log 查看"
