@@ -51,7 +51,7 @@ function header(active) {
     </a>
     <nav>
       ${link('/skills', '全部', 'skills')}
-      ${link('/roles', 'AI 角色', 'roles')}
+      ${link('/roles', 'AI 员工', 'roles')}
       ${link('/skills?listingType=free', '免费', 'free')}
       ${link('/skills?listingType=paid', '收费', 'paid')}
       ${link('/categories', '分类', 'categories')}
@@ -133,7 +133,7 @@ function skillCard(skill) {
     </div>
     <div class="skill-card-foot">
       <span class="dl-count">↓ ${dl}</span>
-      <span class="card-cta">${isRole ? '购买角色 →' : skill.listingType === 'paid' ? '购买下载 →' : '免费下载 →'}</span>
+      <span class="card-cta">${isRole ? '购买员工 →' : skill.listingType === 'paid' ? '购买下载 →' : '免费下载 →'}</span>
     </div>
   </a>`;
 }
