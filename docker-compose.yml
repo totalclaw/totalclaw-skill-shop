@@ -1,0 +1,23 @@
+# MongoDB for the Skill 市场. 库名 skill-market.
+version: "3.7"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: skill-market-mongo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27018:27017"
+    volumes:
+      - skill_market_mongo:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: skill-market
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 3s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+volumes:
+  skill_market_mongo:

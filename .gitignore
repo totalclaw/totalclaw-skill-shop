@@ -1,0 +1,8 @@
+node_modules/
+api/node_modules/
+api/dist/
+.env
+*.log
+.DS_Store
+scripts/sync/.sync-progress.json
+data/
