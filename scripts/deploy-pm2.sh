@@ -2,15 +2,15 @@
 # Skill 市场一键部署（仿 totalclaw-web/scripts/deploy-pm2.sh）。
 # 默认与 totalclaw-web 共享同一个 mongodb 库：totalclaw，并以独立子域部署（如 skills.taituai.com）。
 #
-# 用法：
-#   NGINX_SERVER_NAME=skills.taituai.com bash scripts/deploy-pm2.sh   # 部署 PM2 + 生成 80+443 子域 vhost
-#   SKIP_NGINX=1 bash scripts/deploy-pm2.sh                           # 只部署 PM2，不动 nginx
-#   SKIP_API=1   bash scripts/deploy-pm2.sh                           # 只起前台 SSR
-#   SKIP_SYNC=1  bash scripts/deploy-pm2.sh                           # 跳过首次同步
+# 用法（域名已内置 skills.taituai.com，直接一条命令）：
+#   npm run deploy                # 部署 PM2 + 生成 skills.taituai.com 的 80+443 vhost
+#   SKIP_NGINX=1 npm run deploy   # 只部署 PM2，不动 nginx
+#   SKIP_API=1   npm run deploy   # 只起前台 SSR
+#   SKIP_SYNC=1  npm run deploy   # 跳过首次同步
 #
 # 关键 env：
 #   API_PORT=3091  WEB_PORT=3090
-#   NGINX_SERVER_NAME  站点域名（如 skills.taituai.com；默认自动探测公网 IP）
+#   NGINX_SERVER_NAME  站点域名（默认已内置 skills.taituai.com；换域名才需覆盖）
 #   PUBLIC_ORIGIN      对外访问根（默认 https://<NGINX_SERVER_NAME>）—— 决定页面里下载/安装命令显示的地址
 #   SSL_CERT / SSL_KEY 证书路径（默认宝塔 /www/server/panel/vhost/cert/<域名>/{fullchain,privkey}.pem）
 #   SHARED_MONGO_URI   与 web 共享的 mongo（默认 mongodb://127.0.0.1:27117/totalclaw?directConnection=true）
@@ -27,11 +27,8 @@ log() { echo "==> $*"; }
 warn() { echo "!! $*" >&2; }
 
 # ---------- 0) 解析域名 + 对外 origin（PM2 与 nginx 共用） ----------
-SERVER_NAME="${NGINX_SERVER_NAME:-}"
-if [ -z "$SERVER_NAME" ]; then
-  SERVER_NAME="$(curl -s -m 5 https://api.ipify.org 2>/dev/null || true)"
-  [ -z "$SERVER_NAME" ] && SERVER_NAME="_"
-fi
+# 站点域名已内置；如需别的域名：NGINX_SERVER_NAME=xxx npm run deploy
+SERVER_NAME="${NGINX_SERVER_NAME:-skills.taituai.com}"
 # 证书解析（按优先级取第一处同时存在 .pem + .key 的）：
 #   ① 显式 SSL_CERT/SSL_KEY  ② /etc/nginx/cert/<域名>.{pem,key}（服务器上传位置）
 #   ③ 项目内 certs/<域名>.{pem,key}  ④ 宝塔 /www/server/panel/vhost/cert/<域名>/{fullchain,privkey}.pem
