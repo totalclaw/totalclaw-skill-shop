@@ -5,8 +5,9 @@
 
 部署脚本 `scripts/deploy-pm2.sh` 会按优先级取证书：
 1. 显式 env `SSL_CERT` / `SSL_KEY`
-2. 本目录 `certs/<NGINX_SERVER_NAME>.pem` / `.key`  ← 推荐
-3. 宝塔默认 `/www/server/panel/vhost/cert/<域名>/{fullchain,privkey}.pem`
+2. `/etc/nginx/cert/<域名>.{pem,key}`（服务器常用上传位置）
+3. 本目录 `certs/<NGINX_SERVER_NAME>.pem` / `.key`  ← 推荐
+4. 宝塔默认 `/www/server/panel/vhost/cert/<域名>/{fullchain,privkey}.pem`
 
 ## skills.taituai.com
 - `skills.taituai.com.pem`(DigiCert DV，含中间证书链)

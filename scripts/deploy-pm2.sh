@@ -32,11 +32,25 @@ if [ -z "$SERVER_NAME" ]; then
   SERVER_NAME="$(curl -s -m 5 https://api.ipify.org 2>/dev/null || true)"
   [ -z "$SERVER_NAME" ] && SERVER_NAME="_"
 fi
-# 证书路径：① 显式 SSL_CERT/SSL_KEY > ② 项目内 certs/<域名>.{pem,key} > ③ 宝塔默认路径
-if [ -z "${SSL_CERT:-}" ] && [ -f "$ROOT/certs/${SERVER_NAME}.pem" ]; then SSL_CERT="$ROOT/certs/${SERVER_NAME}.pem"; fi
-if [ -z "${SSL_KEY:-}" ]  && [ -f "$ROOT/certs/${SERVER_NAME}.key" ]; then SSL_KEY="$ROOT/certs/${SERVER_NAME}.key"; fi
-SSL_CERT="${SSL_CERT:-/www/server/panel/vhost/cert/${SERVER_NAME}/fullchain.pem}"
-SSL_KEY="${SSL_KEY:-/www/server/panel/vhost/cert/${SERVER_NAME}/privkey.pem}"
+# 证书解析（按优先级取第一处同时存在 .pem + .key 的）：
+#   ① 显式 SSL_CERT/SSL_KEY  ② /etc/nginx/cert/<域名>.{pem,key}（服务器上传位置）
+#   ③ 项目内 certs/<域名>.{pem,key}  ④ 宝塔 /www/server/panel/vhost/cert/<域名>/{fullchain,privkey}.pem
+if [ -z "${SSL_CERT:-}" ] || [ -z "${SSL_KEY:-}" ]; then
+  for d in "/etc/nginx/cert" "$ROOT/certs" "/www/server/panel/vhost/cert/${SERVER_NAME}"; do
+    if [ "$d" = "/www/server/panel/vhost/cert/${SERVER_NAME}" ]; then
+      cpem="$d/fullchain.pem"; ckey="$d/privkey.pem"
+    else
+      cpem="$d/${SERVER_NAME}.pem"; ckey="$d/${SERVER_NAME}.key"
+    fi
+    if [ -f "$cpem" ] && [ -f "$ckey" ]; then
+      [ -z "${SSL_CERT:-}" ] && SSL_CERT="$cpem"
+      [ -z "${SSL_KEY:-}" ] && SSL_KEY="$ckey"
+      break
+    fi
+  done
+fi
+SSL_CERT="${SSL_CERT:-/etc/nginx/cert/${SERVER_NAME}.pem}"
+SSL_KEY="${SSL_KEY:-/etc/nginx/cert/${SERVER_NAME}.key}"
 HAS_CERT=0; [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ] && HAS_CERT=1
 # PUBLIC_ORIGIN：有证书且是真实域名 → https；否则按情况降级
 if [ -n "${PUBLIC_ORIGIN:-}" ]; then
