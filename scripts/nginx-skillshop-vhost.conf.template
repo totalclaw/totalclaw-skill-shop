@@ -1,0 +1,28 @@
+# skill-shop 独立子域 vhost（80 跳 443 + 443 SSL）。由 scripts/deploy-pm2.sh 渲染。
+# 适合全新子域（如 skills.taituai.com）：与 web 的站点完全隔离，靠 server_name 共存于同一台机。
+#   __SERVER_NAME__          站点域名（如 skills.taituai.com）
+#   __SSL_CERT__/__SSL_KEY__ 证书路径（宝塔默认 /www/server/panel/vhost/cert/<域名>/）
+#   __LOCATIONS_INCLUDE_ABS__ 反代 location 文件（/api→API、/→前台）
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name __SERVER_NAME__;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name __SERVER_NAME__;
+
+    ssl_certificate     __SSL_CERT__;
+    ssl_certificate_key __SSL_KEY__;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    # 开发者上传 skill 可能较大
+    client_max_body_size 32m;
+
+    include __LOCATIONS_INCLUDE_ABS__;
+}
