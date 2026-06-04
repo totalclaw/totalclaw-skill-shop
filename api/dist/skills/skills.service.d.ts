@@ -4,19 +4,7 @@ import { QuerySkillsDto } from './dto/query-skills.dto';
 export declare class SkillsService {
     private readonly skillModel;
     constructor(skillModel: Model<SkillDocument>);
-    list(query: QuerySkillsDto): Promise<{
-        items: (import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, Skill, {}, {}> & Skill & {
-            _id: import("mongoose").Types.ObjectId;
-        } & {
-            __v: number;
-        }> & Required<{
-            _id: import("mongoose").Types.ObjectId;
-        }>)[];
-        total: number;
-        page: number;
-        pageSize: number;
-        totalPages: number;
-    }>;
+    list(query: QuerySkillsDto): Promise<unknown>;
     detail(skillId: string, includeContent?: boolean): Promise<import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, Skill, {}, {}> & Skill & {
         _id: import("mongoose").Types.ObjectId;
     } & {
@@ -31,8 +19,8 @@ export declare class SkillsService {
     }> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }>>;
-    categories(kind?: string): Promise<any[]>;
-    sourcesSummary(): Promise<any[]>;
+    categories(kind?: string): Promise<unknown>;
+    sourcesSummary(): Promise<unknown>;
     incrementDownloads(skillId: string): Promise<void>;
     buildDownload(skillId: string): Promise<{
         filename: string;

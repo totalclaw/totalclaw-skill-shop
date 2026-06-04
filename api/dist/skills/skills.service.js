@@ -18,11 +18,27 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const skill_schema_1 = require("./schemas/skill.schema");
 const LIST_PROJECTION = '-contentMd';
+const _cache = new Map();
+function cacheGet(key, ttlMs) {
+    const e = _cache.get(key);
+    if (e && Date.now() - e.at < ttlMs)
+        return e.data;
+    return undefined;
+}
+function cacheSet(key, data) {
+    if (_cache.size > 1000)
+        _cache.clear();
+    _cache.set(key, { at: Date.now(), data });
+}
 let SkillsService = class SkillsService {
     constructor(skillModel) {
         this.skillModel = skillModel;
     }
     async list(query) {
+        const ckey = 'list:' + JSON.stringify(query);
+        const cached = cacheGet(ckey, 60_000);
+        if (cached)
+            return cached;
         const filter = {};
         filter.reviewStatus = { $in: ['n/a', 'approved'] };
         filter.kind = query.kind === 'role' ? 'role' : { $ne: 'role' };
@@ -60,7 +76,9 @@ let SkillsService = class SkillsService {
             this.skillModel.find(filter).select(LIST_PROJECTION).sort(sort).skip(skip).limit(pageSize).lean().exec(),
             this.skillModel.countDocuments(filter).exec(),
         ]);
-        return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+        const res = { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+        cacheSet(ckey, res);
+        return res;
     }
     async detail(skillId, includeContent = false) {
         const doc = await this.skillModel.findOne({ skillId }).lean().exec();
@@ -78,19 +96,30 @@ let SkillsService = class SkillsService {
         return doc;
     }
     async categories(kind) {
+        const ck = 'cat:' + (kind === 'role' ? 'role' : 'skill');
+        const c = cacheGet(ck, 600_000);
+        if (c)
+            return c;
         const kindMatch = kind === 'role' ? 'role' : { $ne: 'role' };
-        return this.skillModel.aggregate([
+        const r = await this.skillModel.aggregate([
             { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch } },
             { $group: { _id: '$category', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
         ]);
+        cacheSet(ck, r);
+        return r;
     }
     async sourcesSummary() {
-        return this.skillModel.aggregate([
+        const c = cacheGet('sources', 600_000);
+        if (c)
+            return c;
+        const r = await this.skillModel.aggregate([
             { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: { $ne: 'role' } } },
             { $group: { _id: '$source', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
         ]);
+        cacheSet('sources', r);
+        return r;
     }
     async incrementDownloads(skillId) {
         await this.skillModel.updateOne({ skillId }, { $inc: { 'stats.downloads': 1 } }).exec();

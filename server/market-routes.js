@@ -8,7 +8,7 @@ const { header, footer, sourceFilter, skillCard, badge, catLabel, isFunctionalCa
 const API_BASE = (process.env.API_BASE || 'http://127.0.0.1:3091').replace(/\/$/, '');
 
 function api() {
-  return axios.create({ baseURL: `${API_BASE}/api`, timeout: 15000 });
+  return axios.create({ baseURL: `${API_BASE}/api`, timeout: 30000 });
 }
 
 function createMarketRouter() {

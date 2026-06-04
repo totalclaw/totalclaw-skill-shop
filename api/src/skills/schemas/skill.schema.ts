@@ -148,7 +148,11 @@ export class Skill {
 export type SkillDocument = HydratedDocument<Skill>;
 export const SkillSchema = SchemaFactory.createForClass(Skill);
 
-// 文本检索索引（name / description / keywords）
-SkillSchema.index({ name: 'text', description: 'text', descriptionZh: 'text' });
-// 列表常用复合索引
-SkillSchema.index({ listingType: 1, category: 1, source: 1 });
+// 列表/聚合常用索引（查询恒含 kind；搜索用 regex 不用 $text，故去掉重的 text 索引）
+SkillSchema.index({ kind: 1, syncedAt: -1 });
+SkillSchema.index({ kind: 1, category: 1 });
+SkillSchema.index({ kind: 1, source: 1 });
+SkillSchema.index({ kind: 1, listingType: 1 });
+SkillSchema.index({ kind: 1, 'stats.downloads': -1 });
+SkillSchema.index({ reviewStatus: 1 });
+SkillSchema.index({ tags: 1 });

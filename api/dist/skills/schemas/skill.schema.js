@@ -174,6 +174,11 @@ exports.Skill = Skill = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true, collection: 'skills' })
 ], Skill);
 exports.SkillSchema = mongoose_1.SchemaFactory.createForClass(Skill);
-exports.SkillSchema.index({ name: 'text', description: 'text', descriptionZh: 'text' });
-exports.SkillSchema.index({ listingType: 1, category: 1, source: 1 });
+exports.SkillSchema.index({ kind: 1, syncedAt: -1 });
+exports.SkillSchema.index({ kind: 1, category: 1 });
+exports.SkillSchema.index({ kind: 1, source: 1 });
+exports.SkillSchema.index({ kind: 1, listingType: 1 });
+exports.SkillSchema.index({ kind: 1, 'stats.downloads': -1 });
+exports.SkillSchema.index({ reviewStatus: 1 });
+exports.SkillSchema.index({ tags: 1 });
 //# sourceMappingURL=skill.schema.js.map

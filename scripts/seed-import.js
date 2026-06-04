@@ -53,6 +53,24 @@ function mongoUri() {
     if (batch.length >= 1000) await flush();
   }
   await flush();
+
+  // 确保查询索引（驱动 insert 不会自动建索引；12 万文档无索引会全表扫描 → 超时）。幂等。
+  const idx = [
+    { key: { skillId: 1 }, name: 'skillId_1', unique: true },
+    { key: { kind: 1, syncedAt: -1 }, name: 'kind_syncedAt' },
+    { key: { kind: 1, category: 1 }, name: 'kind_category' },
+    { key: { kind: 1, source: 1 }, name: 'kind_source' },
+    { key: { kind: 1, listingType: 1 }, name: 'kind_listingType' },
+    { key: { kind: 1, 'stats.downloads': -1 }, name: 'kind_downloads' },
+    { key: { reviewStatus: 1 }, name: 'reviewStatus_1' },
+    { key: { tags: 1 }, name: 'tags_1' },
+  ];
+  process.stdout.write('\n==> 确保索引…');
+  for (const i of idx) {
+    try { await col.createIndex(i.key, { name: i.name, unique: !!i.unique }); process.stdout.write(' ' + i.name); }
+    catch (e) { process.stdout.write(`\n  !! 索引 ${i.name}: ${e.message}`); }
+  }
+
   const count = await col.countDocuments({});
   console.log(`\n==> 完成：新增 ${inserted}，跳过已有 ${skipped}，解析失败 ${bad}；集合现有 ${count} 条`);
   await client.close();

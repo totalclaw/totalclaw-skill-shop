@@ -7,6 +7,18 @@ import { QuerySkillsDto } from './dto/query-skills.dto';
 /** 列表/详情默认裁剪的重字段（正文按需单独取） */
 const LIST_PROJECTION = '-contentMd';
 
+// 简单内存 TTL 缓存：列表/分类/来源聚合是热点又重，缓存后重复请求秒回。
+const _cache = new Map<string, { at: number; data: unknown }>();
+function cacheGet<T>(key: string, ttlMs: number): T | undefined {
+  const e = _cache.get(key);
+  if (e && Date.now() - e.at < ttlMs) return e.data as T;
+  return undefined;
+}
+function cacheSet(key: string, data: unknown) {
+  if (_cache.size > 1000) _cache.clear(); // 兜底防膨胀
+  _cache.set(key, { at: Date.now(), data });
+}
+
 @Injectable()
 export class SkillsService {
   constructor(
@@ -14,6 +26,9 @@ export class SkillsService {
   ) {}
 
   async list(query: QuerySkillsDto) {
+    const ckey = 'list:' + JSON.stringify(query);
+    const cached = cacheGet<unknown>(ckey, 60_000); // 列表缓存 60s
+    if (cached) return cached;
     const filter: Record<string, unknown> = {};
     // 前台默认只展示已上架（社区源 n/a，开发者源 approved）
     filter.reviewStatus = { $in: ['n/a', 'approved'] };
@@ -53,7 +68,9 @@ export class SkillsService {
       this.skillModel.countDocuments(filter).exec(),
     ]);
 
-    return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+    const res = { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+    cacheSet(ckey, res);
+    return res;
   }
 
   /** 详情。默认裁剪闭源 skill 的正文（购买后由 entitlements 接口下发）。 */
@@ -75,21 +92,30 @@ export class SkillsService {
 
   /** 分类聚合（含计数）。kind='role' 时按角色聚合，否则排除角色。 */
   async categories(kind?: string) {
+    const ck = 'cat:' + (kind === 'role' ? 'role' : 'skill');
+    const c = cacheGet<unknown>(ck, 600_000); // 分类缓存 10min
+    if (c) return c;
     const kindMatch = kind === 'role' ? 'role' : { $ne: 'role' };
-    return this.skillModel.aggregate([
+    const r = await this.skillModel.aggregate([
       { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch } },
       { $group: { _id: '$category', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);
+    cacheSet(ck, r);
+    return r;
   }
 
   /** 来源聚合（含计数），仅普通 skill（排除角色）。 */
   async sourcesSummary() {
-    return this.skillModel.aggregate([
+    const c = cacheGet<unknown>('sources', 600_000); // 来源缓存 10min
+    if (c) return c;
+    const r = await this.skillModel.aggregate([
       { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: { $ne: 'role' } } },
       { $group: { _id: '$source', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);
+    cacheSet('sources', r);
+    return r;
   }
 
   async incrementDownloads(skillId: string) {
