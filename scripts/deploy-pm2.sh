@@ -101,7 +101,7 @@ ensure_api_env() {
 ensure_api_env
 
 # ---------- 3) MongoDB（共享时无需本地起） ----------
-if [ "${SKIP_MONGO:-0}" != "1" ] && grep -qE '127\.0\.0\.1:27018/' api/.env 2>/dev/null; then
+if [ "${SKIP_MONGO:-0}" != "1" ] && grep -qE '^MONGODB_URI=mongodb://127\.0\.0\.1:27018/' api/.env 2>/dev/null; then
   log "启动本地 MongoDB (docker compose)"
   docker compose up -d 2>/dev/null || warn "docker 不可用：请确保 MONGODB_URI 指向的库可达"
 fi
@@ -156,6 +156,13 @@ configure_nginx() {
   if $SUDO nginx -t; then
     $SUDO nginx -s reload 2>/dev/null || $SUDO systemctl reload nginx 2>/dev/null || $SUDO service nginx reload 2>/dev/null || true
     log "nginx 配置已生效：$CONF"
+    # 确认主配置确实 include 了我们的 server 块（有些自定义 nginx.conf 不 include conf.d）
+    if $SUDO nginx -T 2>/dev/null | grep -q "$SERVER_NAME"; then
+      log "已确认 server_name=$SERVER_NAME 被 nginx 加载 ✓"
+    else
+      warn "配置已写入 $CONF，但 nginx 未加载它 —— 主配置可能没 include $SITES。"
+      warn "  手动修复：在 nginx.conf 的 http{} 里加一行  include ${SITES}/*.conf;  再 sudo nginx -s reload"
+    fi
   else
     warn "nginx -t 校验失败（见上方报错），$CONF 未生效"
   fi
