@@ -66,17 +66,15 @@ log "安装前台依赖"
 npm ci 2>/dev/null || npm install
 
 if [ "${SKIP_API:-0}" != "1" ]; then
-  log "安装 API 依赖"
-  ( cd api && { npm ci 2>/dev/null || npm install; } )
-  log "构建 API（tsc 静默编译，首次约 1-3 分钟，无输出属正常，请耐心）…"
-  BUILD_TIMEOUT="${BUILD_TIMEOUT:-900}"
-  if command -v timeout >/dev/null 2>&1; then
-    ( cd api && timeout "$BUILD_TIMEOUT" npm run build ) \
-      || { warn "API 构建失败/超时(${BUILD_TIMEOUT}s)，多为小内存机 OOM。处理：加 swap 后重试，或本地构建后把 api/dist 传上来再 SKIP_API=1 npm run deploy"; exit 1; }
+  # api/dist 已随仓库提交 → 服务器不构建（避免小内存机 nest build OOM/卡死）。只装运行依赖。
+  log "安装 API 运行依赖（--omit=dev；dist 已随仓库提交，无需在服务器构建）"
+  ( cd api && { npm ci --omit=dev 2>/dev/null || npm install --omit=dev; } )
+  if [ -f api/dist/main.js ]; then
+    log "使用随仓库提交的 api/dist ✓（跳过构建）"
   else
-    ( cd api && npm run build )
+    warn "api/dist/main.js 缺失 → 回退在服务器构建（需 devDeps，小内存机可能 OOM，建议本地构建后提交 dist）"
+    ( cd api && npm install && npm run build ) || { warn "API 构建失败"; exit 1; }
   fi
-  log "API 构建完成 ✓"
 fi
 
 # ---------- 2) api/.env（与 web 共享 totalclaw；自动补密钥） ----------

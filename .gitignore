@@ -1,6 +1,6 @@
 node_modules/
 api/node_modules/
-api/dist/
+# api/dist 随仓库提交：服务器部署不再 build（见 scripts/deploy-pm2.sh）
 .env
 *.log
 .DS_Store
