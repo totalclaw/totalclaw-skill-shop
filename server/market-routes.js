@@ -123,7 +123,7 @@ ${footer()}`;
     }
   });
 
-  // AI 员工（kind=role）：专属浏览页
+  // AI 员工岗位库（kind=role）：专属浏览页
   router.get('/roles', async (req, res) => {
     try {
       const params = {
@@ -150,24 +150,24 @@ ${footer()}`;
   <section class="hero roles-hero">
     <div class="hero-inner">
       <div class="hero-copy">
-        <span class="hero-kicker">TotalClaw AI 员工 · 即买即用的岗位人格</span>
-        <h1>AI <span class="grad">员工市场</span></h1>
+        <span class="hero-kicker">TotalClaw AI 员工岗位库 · 即买即用的岗位人格</span>
+        <h1>AI <span class="grad">员工岗位库</span></h1>
         <p>覆盖研发、设计、营销、销售、金融、法律等岗位的专家级 Agent 人格，购买后即可下载部署，让 AI 按真实岗位标准工作。</p>
         <form class="hero-search" action="/roles" method="get" role="search">
           <input type="search" name="q" value="${escapeHtml(req.query.q || '')}" placeholder="搜索员工 / 岗位…" aria-label="搜索员工">
           <button type="submit">搜索</button>
         </form>
-        <p class="hero-stat">已上架 <strong>${data.total || 0}</strong> 个 AI 员工</p>
+        <p class="hero-stat">已上架 <strong>${data.total || 0}</strong> 个 AI 员工岗位</p>
       </div>
     </div>
   </section>
   <div class="src-filter">${catChip('', '全部分类')}${categories.map((c) => catChip(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
-  <h2>${q || ''}AI 员工 <small>${data.total} 个</small></h2>
-  <div class="grid">${items.length ? items.map(skillCard).join('') : '<p class="empty">暂无员工，运行 scripts/roles 生成。</p>'}</div>
+  <h2>${q || ''}AI 员工岗位 <small>${data.total} 个</small></h2>
+  <div class="grid">${items.length ? items.map(skillCard).join('') : '<p class="empty">暂无员工岗位，运行 scripts/roles 生成。</p>'}</div>
   ${pager}
 </main>
 ${footer()}`;
-      res.send(renderPage({ title: 'TotalClaw AI 员工市场', body, canonicalPath: '/roles' }));
+      res.send(renderPage({ title: 'TotalClaw AI 员工岗位库', body, canonicalPath: '/roles' }));
     } catch (e) {
       res.status(502).send(renderPage({ title: '加载失败', body: `${header('roles')}<main class="wrap"><p>API 不可用：${escapeHtml(e.message)}</p></main>${footer()}` }));
     }
@@ -271,7 +271,7 @@ ${footer()}`;
   <div class="auth-head">
     <img src="/assets/img/logo-mark.png" alt="泰途AI" class="auth-logo">
     <h1>登录</h1>
-    <p class="auth-sub">登录 TotalClaw Skill 市场，购买与下载你的 AI 员工与技能</p>
+    <p class="auth-sub">登录 TotalClaw Skill 市场，购买与下载你的 AI 员工岗位与技能</p>
   </div>
   <form id="loginForm" class="card-form">
     <label>用户名<input name="username" required minlength="3"></label>
@@ -292,7 +292,7 @@ ${footer()}`;
   <div class="auth-head">
     <img src="/assets/img/logo-mark.png" alt="泰途AI" class="auth-logo">
     <h1>注册</h1>
-    <p class="auth-sub">创建账号，即刻拥有你的 AI 员工与技能库</p>
+    <p class="auth-sub">创建账号，即刻拥有你的 AI 员工岗位与技能库</p>
   </div>
   <form id="registerForm" class="card-form">
     <label>用户名<input name="username" required minlength="3"></label>
