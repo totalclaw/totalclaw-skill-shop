@@ -1,38 +1,34 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
+import { Injectable, UnauthorizedException, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+
+// 与 totalclaw-web 共用账号体系：登录直接代理到 web 的登录 API。
+// WEB_AUTH_BASE 指向 web 的 NestJS user-info-api（线上默认 127.0.0.1:3000/api）。
+const WEB_AUTH_BASE = (process.env.WEB_AUTH_BASE || 'http://127.0.0.1:3000/api').replace(/\/$/, '');
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly jwtService: JwtService,
-  ) {}
-
-  async register(username: string, password: string) {
-    const existing = await this.usersService.findByUsername(username);
-    if (existing) throw new ConflictException('username taken');
-    const user = await this.usersService.create(username, password);
-    return this.sign(user);
+  /** 登录：转发到 web 的 /auth/login（identifier=手机号/邮箱 + password），原样返回其 token/user。 */
+  async login(identifier: string, password: string) {
+    let status = 0;
+    let data: any = {};
+    try {
+      const r = await fetch(`${WEB_AUTH_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+      });
+      status = r.status;
+      data = await r.json().catch(() => ({}));
+    } catch {
+      throw new ServiceUnavailableException('认证服务暂不可用（web 登录接口连不上）');
+    }
+    if (status >= 400 || !data?.accessToken) {
+      throw new UnauthorizedException(data?.message || '账号或密码错误');
+    }
+    return data; // { accessToken, refreshToken, user }
   }
 
-  async login(username: string, password: string) {
-    const user = await this.usersService.findByUsername(username);
-    if (!user) throw new UnauthorizedException('invalid credentials');
-    const ok = await this.usersService.validatePassword(password, user.passwordHash);
-    if (!ok) throw new UnauthorizedException('invalid credentials');
-    return this.sign(user);
-  }
-
-  private sign(user: any) {
-    const payload = {
-      sub: String(user._id),
-      username: user.username,
-      roles: user.roles,
-    };
-    return {
-      accessToken: this.jwtService.sign(payload),
-      user: { id: String(user._id), username: user.username, roles: user.roles },
-    };
+  /** 注册：账号体系归 web，引导去 taituai.com 注册。 */
+  async register() {
+    throw new BadRequestException('本站与 taituai.com 共用账号，请前往 taituai.com 注册/登录');
   }
 }

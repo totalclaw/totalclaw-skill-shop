@@ -1,35 +1,26 @@
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
-declare class CredentialsDto {
-    username: string;
+declare class LoginDto {
+    identifier?: string;
+    username?: string;
     password: string;
 }
 export declare class AuthController {
     private readonly authService;
     private readonly usersService;
     constructor(authService: AuthService, usersService: UsersService);
-    register(dto: CredentialsDto): Promise<{
-        accessToken: string;
-        user: {
-            id: string;
-            username: any;
-            roles: any;
-        };
-    }>;
-    login(dto: CredentialsDto): Promise<{
-        accessToken: string;
-        user: {
-            id: string;
-            username: any;
-            roles: any;
-        };
-    }>;
+    register(): Promise<void>;
+    login(dto: LoginDto, res: Response): Promise<any>;
+    logout(res: Response): {
+        ok: boolean;
+    };
     me(req: any): Promise<{
         id: any;
         username: any;
         roles: any;
-        nickname: string;
-        earningsBalance: number;
+        nickname: any;
+        earningsBalance: any;
     }>;
     becomeDeveloper(req: any): Promise<{
         ok: boolean;

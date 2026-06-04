@@ -93,10 +93,27 @@ ensure_api_env() {
     log "MONGODB_URI 指向共享库：$SHARED_MONGO_URI"
   fi
   gen() { node -e 'console.log(require("crypto").randomBytes(24).toString("hex"))'; }
-  if grep -q 'change-me' "$env"; then
-    perl -i -pe "s#change-me-skill-market-jwt#$(gen)#; s#change-me-internal-token#$(gen)#" "$env"
-    log "已为 JWT_SECRET / SKILL_PAY_INTERNAL_TOKEN 生成随机值"
-  fi
+  grep -q 'change-me-internal-token' "$env" && perl -i -pe "s#change-me-internal-token#$(gen)#" "$env"
+
+  # upsert KEY=VAL 到 api/.env
+  set_env() { local k="$1" v="$2"
+    if grep -qE "^${k}=" "$env"; then perl -i -pe "s#^${k}=.*#${k}=${v}#" "$env"; else printf '%s=%s\n' "$k" "$v" >> "$env"; fi; }
+
+  # 与 web 共用账号/登录态：JWT_SECRET 必须 = web 的（才能验 web 签发的 token）
+  local WD="${WEB_DIR:-}"
+  if [ -z "$WD" ]; then for d in "$HOME/totalclaw-web" "$ROOT/../totalclaw-web" /www/wwwroot/totalclaw-web; do
+    [ -f "$d/server/user-info-api/backend/.env" ] && { WD="$d"; break; }; done; fi
+  local WJ=""
+  [ -n "$WD" ] && WJ="$(grep -E '^JWT_SECRET=' "$WD/server/user-info-api/backend/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed 's/^["'"'"']//; s/["'"'"']$//')"
+  if [ -n "$WJ" ]; then set_env JWT_SECRET "$WJ"; log "JWT_SECRET 已与 web 共用（来自 $WD）"
+  else warn "未找到 web 的 JWT_SECRET（可设 WEB_DIR=web项目路径）→ 与 web 的共享登录态会验签失败"; fi
+
+  # cookie 父域（skills.taituai.com → .taituai.com）+ 认证代理目标
+  local PARENT; PARENT="$(echo "$SERVER_NAME" | sed -E 's#^[^.]+\.##')"
+  set_env COOKIE_DOMAIN ".${PARENT}"
+  set_env COOKIE_SECURE "$([ "$HAS_CERT" = 1 ] && echo 1 || echo 0)"
+  set_env WEB_AUTH_BASE "${WEB_AUTH_BASE:-http://127.0.0.1:3000/api}"
+  log "已配 SSO：COOKIE_DOMAIN=.${PARENT}  WEB_AUTH_BASE=${WEB_AUTH_BASE:-http://127.0.0.1:3000/api}"
 }
 ensure_api_env
 
