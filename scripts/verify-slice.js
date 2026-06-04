@@ -8,7 +8,7 @@ const { MongoClient } = require('mongodb');
 
 (async () => {
   const mem = await MongoMemoryServer.create();
-  const uri = mem.getUri('skill-market');
+  const uri = mem.getUri('totalclaw');
   process.env.MONGODB_URI = uri;
   console.log('内存 MongoDB:', uri);
 

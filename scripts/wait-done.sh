@@ -2,7 +2,7 @@
 cd "$(dirname "$0")/.."
 counts() { node -e '
 const {MongoClient}=require("mongodb");
-(async()=>{const c=new MongoClient("mongodb://127.0.0.1:27018/skill-market");await c.connect();const db=c.db("skill-market");
+(async()=>{const c=new MongoClient("mongodb://127.0.0.1:27018/totalclaw");await c.connect();const db=c.db("totalclaw");
 const r=await db.collection("skills").countDocuments({kind:"role"});
 const s=await db.collection("skills").countDocuments({kind:{$ne:"role"}});
 console.log(r+" "+s);await c.close();})().catch(()=>console.log("0 0"))'; }

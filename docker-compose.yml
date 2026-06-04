@@ -1,17 +1,18 @@
-# MongoDB for the Skill 市场. 库名 skill-market.
+# MongoDB（与 totalclaw-web 共享同一个库名：totalclaw）。
+# 仅「独立本地开发」时用本 compose 起一个 mongo；与 web 共享时请直接连 web 的 mongo（见 api/.env.example）。
 version: "3.7"
 
 services:
   mongo:
     image: mongo:7
-    container_name: skill-market-mongo
+    container_name: totalclaw-mongo
     restart: unless-stopped
     ports:
       - "127.0.0.1:27018:27017"
     volumes:
-      - skill_market_mongo:/data/db
+      - totalclaw_mongo:/data/db
     environment:
-      MONGO_INITDB_DATABASE: skill-market
+      MONGO_INITDB_DATABASE: totalclaw
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"]
       interval: 3s
@@ -20,4 +21,4 @@ services:
       start_period: 15s
 
 volumes:
-  skill_market_mongo:
+  totalclaw_mongo:

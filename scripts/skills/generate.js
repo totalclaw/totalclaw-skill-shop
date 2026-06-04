@@ -160,7 +160,7 @@ async function main() {
   const perRole = Number(arg('perRole', 8));
   const specConc = Math.max(1, Number(arg('concurrency', 8)));   // 单岗位内技能并发
   const roleConc = Math.max(1, Number(arg('roleConcurrency', 4))); // 同时处理几个岗位
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/skill-market';
+  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/totalclaw';
 
   const client = new MongoClient(uri);
   await client.connect();

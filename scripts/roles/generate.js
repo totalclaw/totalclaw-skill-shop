@@ -135,7 +135,7 @@ async function main() {
   const titles = JSON.parse(fs.readFileSync(TITLES, 'utf8'));
   const limit = Number(arg('limit', 20));
   const concurrency = Math.max(1, Number(arg('concurrency', 3)));
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/skill-market';
+  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/totalclaw';
 
   const client = new MongoClient(uri);
   await client.connect();

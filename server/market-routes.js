@@ -268,14 +268,18 @@ ${footer()}`;
   router.get('/login', (req, res) => {
     const body = `${header()}
 <main class="wrap auth-page">
-  <h1>登录</h1>
+  <div class="auth-head">
+    <img src="/assets/img/logo-mark.png" alt="泰途AI" class="auth-logo">
+    <h1>登录</h1>
+    <p class="auth-sub">登录 TotalClaw Skill 市场，购买与下载你的 AI 角色与技能</p>
+  </div>
   <form id="loginForm" class="card-form">
     <label>用户名<input name="username" required minlength="3"></label>
     <label>密码<input name="password" type="password" required minlength="6"></label>
     <button type="submit">登录</button>
     <p class="form-msg" id="loginMsg"></p>
   </form>
-  <p>还没有账号？<a href="/register">去注册</a></p>
+  <p class="auth-alt">还没有账号？<a href="/register">去注册</a></p>
 </main>
 ${footer()}`;
     res.send(renderPage({ title: '登录', body, canonicalPath: '/login', scripts: ['/assets/js/account.js'] }));
@@ -285,14 +289,18 @@ ${footer()}`;
   router.get('/register', (req, res) => {
     const body = `${header()}
 <main class="wrap auth-page">
-  <h1>注册</h1>
+  <div class="auth-head">
+    <img src="/assets/img/logo-mark.png" alt="泰途AI" class="auth-logo">
+    <h1>注册</h1>
+    <p class="auth-sub">创建账号，即刻拥有你的 AI 角色与技能库</p>
+  </div>
   <form id="registerForm" class="card-form">
     <label>用户名<input name="username" required minlength="3"></label>
     <label>密码（≥6 位）<input name="password" type="password" required minlength="6"></label>
     <button type="submit">注册并登录</button>
     <p class="form-msg" id="registerMsg"></p>
   </form>
-  <p>已有账号？<a href="/login">去登录</a></p>
+  <p class="auth-alt">已有账号？<a href="/login">去登录</a></p>
 </main>
 ${footer()}`;
     res.send(renderPage({ title: '注册', body, canonicalPath: '/register', scripts: ['/assets/js/account.js'] }));

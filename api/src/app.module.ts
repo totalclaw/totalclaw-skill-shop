@@ -16,7 +16,7 @@ import { AdminModule } from './admin/admin.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(
-      process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/skill-market',
+      process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/totalclaw',
     ),
     SkillsModule,
     SourcesModule,

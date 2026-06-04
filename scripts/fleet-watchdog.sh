@@ -17,7 +17,7 @@ bal_count() { grep -ch 'Insufficient Balance' $LOGS 2>/dev/null | awk '{s+=$1} E
 counts() {
   node -e '
   const {MongoClient}=require("mongodb");
-  (async()=>{const c=new MongoClient("mongodb://127.0.0.1:27018/skill-market");await c.connect();const db=c.db("skill-market");
+  (async()=>{const c=new MongoClient("mongodb://127.0.0.1:27018/totalclaw");await c.connect();const db=c.db("totalclaw");
   const r=await db.collection("skills").countDocuments({kind:"role"});
   const cs=await db.collection("skills").countDocuments({kind:{$ne:"role"},closedSource:true});
   const undone=await db.collection("skills").countDocuments({kind:"role",skillsDone:{$ne:true}});

@@ -1,0 +1,17 @@
+# skill-shop — listen 80 vhost；共享路由见 skill-shop-locations.inc。
+# 由 scripts/deploy-pm2.sh 从本模板渲染生成 —— 不要在服务器上手改。
+#
+# 宝塔：若面板已有 listen 443 ssl 的站点，deploy-pm2.sh 会把
+#   include __LOCATIONS_INCLUDE_ABS__;
+# 自动插入该 SSL server{} 的第一个 location / 之前，使 https 与 http 行为一致。
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name __SERVER_NAME__ __SERVER_NAME_EXTRA__;
+
+    # 开发者上传 skill 可能较大
+    client_max_body_size 32m;
+
+    include __LOCATIONS_INCLUDE_ABS__;
+}

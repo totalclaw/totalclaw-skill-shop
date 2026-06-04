@@ -21,7 +21,7 @@ npm run start:local   # 起 MongoDB(:27018) + API(:3091) + 前台(:3090)，日�
 
 ## 快速开始（手动 / 生产）
 ```bash
-# 1. 起 MongoDB（库 skill-market，宿主端口 27018）
+# 1. 起 MongoDB（库 totalclaw，宿主端口 27018）
 npm run mongo:up            # 需 Docker；无 Docker 见下方"无 Docker 验证"
 
 # 2. 安装依赖
@@ -55,7 +55,7 @@ npm run start                            # 前台 :3090
 ## 无 Docker 验证（开发机）
 本机无 Docker 时，`mongodb-memory-server` 会下载独立 `mongod` 二进制，可直接启动到 :27018：
 ```bash
-node_modules/.cache/mongodb-memory-server/mongod-* --dbpath /tmp/skill-market-db --port 27018
+node_modules/.cache/mongodb-memory-server/mongod-* --dbpath /tmp/totalclaw-db --port 27018
 ```
 或一键数据层验证：`node scripts/verify-slice.js`（内存库 + 同步 + 查询）。
 

@@ -8,6 +8,7 @@ const fs = require('fs');
 
 const apiCwd = path.join(__dirname, 'api');
 const apiPort = parseInt(process.env.API_PORT || '3091', 10);
+const webPort = parseInt(process.env.WEB_PORT || '3090', 10);
 
 // 从 api/.env 读取关键 env 透传给进程（仿 totalclaw-web）
 const apiEnvFile = path.join(apiCwd, '.env');
@@ -31,9 +32,9 @@ const apps = [
     min_uptime: '5s',
     env: {
       NODE_ENV: 'production',
-      PORT: 3090,
-      API_BASE: process.env.API_BASE || 'http://127.0.0.1:3091',
-      PUBLIC_ORIGIN: process.env.PUBLIC_ORIGIN || 'http://localhost:3090',
+      PORT: webPort,
+      API_BASE: process.env.API_BASE || `http://127.0.0.1:${apiPort}`,
+      PUBLIC_ORIGIN: process.env.PUBLIC_ORIGIN || `http://localhost:${webPort}`,
     },
   },
 ];

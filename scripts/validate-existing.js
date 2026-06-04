@@ -60,9 +60,9 @@ async function audit(col, kind, validate, outFile) {
 }
 
 (async () => {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/skill-market';
+  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/totalclaw';
   const c = new MongoClient(uri); await c.connect();
-  const col = c.db('skill-market').collection('skills');
+  const col = c.db('totalclaw').collection('skills');
 
   console.log('=== 程序验证存量数据（只读快照）===');
   const r = await audit(col, 'role', validateRole, path.join(OUT, 'role-fails.jsonl'));

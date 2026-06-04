@@ -62,7 +62,7 @@ function toRoleDoc({ category, slug, file }) {
 
 async function main() {
   loadEnv();
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/skill-market';
+  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/totalclaw';
   if (!fs.existsSync(ROLES_DIR)) { console.error('角色目录不存在:', ROLES_DIR); process.exit(1); }
 
   const files = listRoleFiles(ROLES_DIR);

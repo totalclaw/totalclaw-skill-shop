@@ -42,7 +42,7 @@ const ADAPTERS = {
 const DEDUP = process.argv.includes('--dedup');
 
 const MONGODB_URI =
-  process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/skill-market';
+  process.env.MONGODB_URI || 'mongodb://127.0.0.1:27018/totalclaw';
 
 function parseArgs() {
   const arg = process.argv.find((a) => a.startsWith('--source='));

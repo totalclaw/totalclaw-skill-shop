@@ -3,7 +3,7 @@
 cd "$(dirname "$0")/.."
 node -e '
 const {MongoClient}=require("mongodb");
-(async()=>{const c=new MongoClient(process.env.MONGODB_URI||"mongodb://127.0.0.1:27018/skill-market");await c.connect();const db=c.db("skill-market");
+(async()=>{const c=new MongoClient(process.env.MONGODB_URI||"mongodb://127.0.0.1:27018/totalclaw");await c.connect();const db=c.db("totalclaw");
 const r=await db.collection("skills").countDocuments({kind:"role"});
 const cs=await db.collection("skills").countDocuments({kind:{$ne:"role"},closedSource:true});
 const all=await db.collection("skills").countDocuments({kind:{$ne:"role"}});
