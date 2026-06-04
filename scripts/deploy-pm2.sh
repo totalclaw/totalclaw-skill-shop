@@ -132,11 +132,12 @@ configure_nginx() {
   [ -z "$MAINCONF" ] && MAINCONF="/etc/nginx/nginx.conf"
   local NGINX_DIR; NGINX_DIR="$(dirname "$MAINCONF")"
   # 优先：主配置里 include 的、且真实存在的 vhost 目录（宝塔/标准布局都能命中）
+  # 注意：宝塔 vhost 目录(/www/server/panel/vhost/...)是 root 专属，必须用 sudo test -d 判断存在性
   local SITES=""
-  SITES="$($SUDO grep -hoE 'include[[:space:]]+/[^;*]+\*\.conf' "$MAINCONF" 2>/dev/null | awk '{print $2}' | sed 's#/\*\.conf$##' | while read -r p; do [ -d "$p" ] && { echo "$p"; break; }; done)"
+  SITES="$($SUDO grep -hoE 'include[[:space:]]+/[^;*]+\*\.conf' "$MAINCONF" 2>/dev/null | awk '{print $2}' | sed 's#/\*\.conf$##' | while read -r p; do $SUDO test -d "$p" && { echo "$p"; break; }; done)"
   if [ -z "$SITES" ]; then
     for d in /www/server/panel/vhost/nginx "$NGINX_DIR/conf.d" "$NGINX_DIR/sites-enabled" /etc/nginx/conf.d; do
-      [ -d "$d" ] && { SITES="$d"; break; }
+      $SUDO test -d "$d" && { SITES="$d"; break; }
     done
   fi
   [ -z "$SITES" ] && { $SUDO mkdir -p "$NGINX_DIR/conf.d"; SITES="$NGINX_DIR/conf.d"; }
