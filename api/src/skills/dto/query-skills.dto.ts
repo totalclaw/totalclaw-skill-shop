@@ -13,6 +13,11 @@ export class QuerySkillsDto {
   @IsString()
   category?: string;
 
+  @ApiPropertyOptional({ description: '多分类（逗号分隔，命中任一即匹配；用于按大类筛选）' })
+  @IsOptional()
+  @IsString()
+  categories?: string;
+
   @ApiPropertyOptional({ description: '来源', enum: ['github', 'tencent', 'openclaw', 'hermes', 'totalclaw'] })
   @IsOptional()
   @IsString()

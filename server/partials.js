@@ -40,6 +40,17 @@ function catLabel(cat) {
   return CATEGORY_ZH[cat] || cat;
 }
 
+// AI 员工岗位的「大类」划分：通用岗位职能（跨行业的职能）vs 行业领域。
+// 命中下表 → 通用岗位职能；其余角色分类 → 行业领域。
+const ROLE_FUNCTIONAL_CATS = new Set([
+  '产品经理', '产品设计与UX', '互联网研发', '后端与架构', '前端与移动端', '游戏研发', '游戏策划与美术',
+  '数据与算法', '人工智能与大模型', '测试与质量', '运维与SRE', '安全与风控', '空间计算',
+  '市场营销', '增长与投放', '内容与新媒体', '品牌公关', '直播与短视频', '销售与商务', '电商运营', '客户成功与支持',
+  '视觉与品牌设计', '人力资源', '财务与税务', '会计与审计', '法律与合规', '项目与交付', '行政与组织', '战略与咨询',
+  '供应链与采购', '物流与仓储', '制造与工艺', '科研与学术',
+]);
+const isFunctionalCat = (c) => ROLE_FUNCTIONAL_CATS.has(c);
+
 function header(active) {
   const link = (href, label, key) =>
     `<a href="${href}" class="${active === key ? 'active' : ''}">${label}</a>`;
@@ -138,4 +149,4 @@ function skillCard(skill) {
   </a>`;
 }
 
-module.exports = { header, footer, sourceFilter, skillCard, badge, catLabel, SOURCE_LABEL, SOURCE_ORDER, CATEGORY_ZH };
+module.exports = { header, footer, sourceFilter, skillCard, badge, catLabel, isFunctionalCat, SOURCE_LABEL, SOURCE_ORDER, CATEGORY_ZH };

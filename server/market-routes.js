@@ -3,7 +3,7 @@
 const express = require('express');
 const axios = require('axios');
 const { renderPage, escapeHtml, PUBLIC_ORIGIN } = require('./render');
-const { header, footer, sourceFilter, skillCard, badge, catLabel, SOURCE_LABEL, SOURCE_ORDER } = require('./partials');
+const { header, footer, sourceFilter, skillCard, badge, catLabel, isFunctionalCat, SOURCE_LABEL, SOURCE_ORDER } = require('./partials');
 
 const API_BASE = (process.env.API_BASE || 'http://127.0.0.1:3091').replace(/\/$/, '');
 
@@ -126,24 +126,39 @@ ${footer()}`;
   // AI 员工岗位库（kind=role）：专属浏览页
   router.get('/roles', async (req, res) => {
     try {
-      const params = {
-        kind: 'role',
-        q: req.query.q,
-        category: req.query.category,
-        sort: req.query.sort,
-        page: req.query.page || 1,
-        pageSize: 24,
-      };
-      const [{ data }, cats] = await Promise.all([
-        api().get('/skills', { params }),
-        api().get('/skills/categories', { params: { kind: 'role' } }).catch(() => ({ data: [] })),
-      ]);
-      const items = data.items || [];
+      // 先取角色分类，按大类拆分（通用岗位职能 / 行业领域）
+      const cats = await api().get('/skills/categories', { params: { kind: 'role' } }).catch(() => ({ data: [] }));
       const categories = cats.data || [];
-      const q = req.query.q ? `“${escapeHtml(req.query.q)}” ` : '';
+      const funcCats = categories.filter((c) => isFunctionalCat(c._id));
+      const indCats = categories.filter((c) => !isFunctionalCat(c._id));
+
       const activeCat = req.query.category || '';
-      const catChip = (c, label) =>
-        `<a class="src-tab ${activeCat === c ? 'active' : ''}" href="/roles${c ? '?category=' + encodeURIComponent(c) : ''}">${escapeHtml(label)}</a>`;
+      // 大类 group：func=通用岗位职能, ind=行业领域；选了具体小类则按其归属反推大类
+      let activeGroup = req.query.group === 'func' || req.query.group === 'ind' ? req.query.group : '';
+      if (activeCat && !activeGroup) activeGroup = isFunctionalCat(activeCat) ? 'func' : 'ind';
+
+      // 列表筛选：具体小类 → category；只选了大类 → categories(该大类全部小类)；全部 → 不筛
+      const params = { kind: 'role', q: req.query.q, sort: req.query.sort, page: req.query.page || 1, pageSize: 24 };
+      if (activeCat) params.category = activeCat;
+      else if (activeGroup === 'func') params.categories = funcCats.map((c) => c._id).join(',');
+      else if (activeGroup === 'ind') params.categories = indCats.map((c) => c._id).join(',');
+      const { data } = await api().get('/skills', { params });
+      const items = data.items || [];
+      const q = req.query.q ? `“${escapeHtml(req.query.q)}” ` : '';
+
+      // 大类 tab（全部 / 通用岗位职能 / 行业领域）
+      const majorTab = (g, label) => {
+        const active = g === '' ? !activeGroup : activeGroup === g;
+        const href = g ? `/roles?group=${g}` : '/roles';
+        return `<a class="src-tab cat-major-tab ${active ? 'active' : ''}" href="${href}">${label}</a>`;
+      };
+      // 小类 chip（只在选中大类后展示）
+      const minorChip = (g, c, label) => {
+        const href = c ? `/roles?group=${g}&category=${encodeURIComponent(c)}` : `/roles?group=${g}`;
+        const active = c ? activeCat === c : activeGroup === g && !activeCat;
+        return `<a class="src-tab ${active ? 'active' : ''}" href="${href}">${escapeHtml(label)}</a>`;
+      };
+      const activeList = activeGroup === 'func' ? funcCats : activeGroup === 'ind' ? indCats : [];
       const pager = buildPager(data.page, data.totalPages, { ...req.query });
       const body = `${header('roles')}
 <main class="wrap">
@@ -161,7 +176,10 @@ ${footer()}`;
       </div>
     </div>
   </section>
-  <div class="src-filter">${catChip('', '全部分类')}${categories.map((c) => catChip(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
+  <div class="cat-nav">
+    <div class="src-filter cat-major">${majorTab('', '全部')}${majorTab('func', '通用岗位职能')}${majorTab('ind', '行业领域')}</div>
+    ${activeGroup ? `<div class="cat-minor src-filter">${minorChip(activeGroup, '', '全部' + (activeGroup === 'func' ? '职能' : '行业'))}${activeList.map((c) => minorChip(activeGroup, c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>` : ''}
+  </div>
   <h2>${q || ''}AI 员工岗位 <small>${data.total} 个</small></h2>
   <div class="grid">${items.length ? items.map(skillCard).join('') : '<p class="empty">暂无员工岗位，运行 scripts/roles 生成。</p>'}</div>
   ${pager}

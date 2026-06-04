@@ -21,7 +21,12 @@ export class SkillsService {
     // kind：role 仅在显式 kind=role 时返回；普通 skill 列表排除角色（兼容历史无 kind 字段的文档）
     filter.kind = query.kind === 'role' ? 'role' : { $ne: 'role' };
 
-    if (query.category) filter.category = query.category;
+    if (query.categories) {
+      const list = String(query.categories).split(',').map((s) => s.trim()).filter(Boolean);
+      if (list.length) filter.category = { $in: list };
+    } else if (query.category) {
+      filter.category = query.category;
+    }
     if (query.source) filter.source = query.source;
     if (query.tag) filter.tags = query.tag;
     if (query.listingType) filter.listingType = query.listingType;

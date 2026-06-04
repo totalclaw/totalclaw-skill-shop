@@ -215,6 +215,13 @@ main h2::before {
 .src-tab:hover { color: var(--accent); border-color: var(--border-strong); }
 .src-tab.active { color: #fff; border-color: transparent; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); }
 
+/* 角色分类两级：大类(cat-major) → 选中后展开小类(cat-minor) */
+.cat-nav { margin: 18px 0 10px; }
+.cat-major { margin: 0; gap: 10px; }
+.cat-major .cat-major-tab { font-weight: 600; padding: 9px 20px; font-size: 14.5px; }
+.cat-minor { margin: 12px 0 0; padding: 14px 16px; gap: 8px; background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); }
+.cat-minor .src-tab { font-size: 13px; padding: 6px 13px; background: var(--bg1); }
+
 .list-search { display: flex; gap: 0; margin: 6px 0 14px; max-width: 540px; }
 .list-search input { flex: 1; background: var(--bg1); border: 1px solid var(--line); color: var(--text); padding: 12px 15px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); outline: none; }
 .list-search input:focus { border-color: var(--border-strong); box-shadow: 0 0 0 3px var(--accent-dim); }
