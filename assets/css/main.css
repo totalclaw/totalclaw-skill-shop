@@ -119,10 +119,10 @@ a:hover { color: var(--accent-dark); }
 .hero-inner { display: grid; grid-template-columns: 1.4fr .9fr; gap: 36px; align-items: center; }
 .hero-kicker {
   display: inline-block; font-size: 12px; letter-spacing: 1.5px; color: var(--accent);
-  border: 1px solid var(--border-strong); border-radius: var(--radius-full); padding: 5px 15px; margin-bottom: 18px;
-  background: var(--accent-dim);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-full); padding: 5px 15px; margin-bottom: 26px;
+  background: var(--accent-dim); line-height: 1.6;
 }
-.hero h1 { font-family: var(--font-display); font-weight: 600; font-size: 48px; line-height: 1.1; margin: 0 0 16px; letter-spacing: -.5px; color: var(--text); }
+.hero h1 { font-family: var(--font-display); font-weight: 600; font-size: 48px; line-height: 1.2; margin: 0 0 16px; padding-top: 2px; letter-spacing: -.5px; color: var(--text); }
 .hero h1 .grad {
   background: linear-gradient(100deg, var(--accent) 10%, var(--accent-teal) 90%);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
