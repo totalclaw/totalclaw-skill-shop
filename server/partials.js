@@ -15,6 +15,31 @@ const SOURCE_LABEL = {
 // 前台来源筛选顺序（自研在前；镜像源/空源由首页按计数过滤展示）
 const SOURCE_ORDER = ['totalclaw', 'openclaw', 'hermes', 'github', 'clawskills', 'tencent'];
 
+// 英文分类（多来自聚合的开源 skill）→ 中文显示名。未命中则原样返回。
+const CATEGORY_ZH = {
+  'personal-productivity': '个人效率', 'productivity': '效率提升', 'skills': '通用技能', 'skill': '通用技能', 'sub-skills': '子技能',
+  'engineering': '工程研发', 'software-development': '软件开发', 'web-development': 'Web 开发', 'algorithm': '算法',
+  'backend': '后端开发', 'frontend': '前端开发', 'specialized': '专项技能', 'marketing': '市场营销', 'marketing-sales': '营销与销售',
+  'paid-media': '付费投放', 'operations': '运营', 'security': '安全', 'red-teaming': '红队攻防', 'devops': 'DevOps 运维', 'mlops': 'MLOps',
+  'design': '设计', 'product': '产品', 'customer-service': '客户服务', 'support': '技术支持', 'network': '网络',
+  'finance': '财务金融', 'investment': '投资', 'admin-finance': '行政财务', 'testing': '测试', 'quality': '质量',
+  'hr': '人力资源', 'sales': '销售', 'other': '其他', 'legal': '法律', 'supply-chain': '供应链', 'project-management': '项目管理',
+  'spatial-computing': '空间计算', 'examples': '示例演示', 'game-development': '游戏开发', 'gaming': '游戏', 'ai-ml': '人工智能',
+  'autonomous-ai-agents': '自主智能体', 'references': '参考资料', 'public-relations': '公共关系', 'research': '研究', 'creative': '创意',
+  'strategy': '战略', 'academic': '学术', 'trademark': '商标', 'copywriting': '文案', 'business': '商业', 'media': '媒体',
+  'social-media': '社交媒体', 'healthcare': '医疗健康', 'health': '健康', 'translation': '翻译', 'blockchain': '区块链',
+  'education': '教育', 'manufacturing': '制造', 'consulting': '咨询', 'data-science': '数据科学', 'data': '数据',
+  'communication': '沟通协作', 'presentation': '演示文稿', 'ppt-skill': '演示文稿', 'note-taking': '笔记', 'smart-home': '智能家居',
+  'email': '邮件', 'hardware': '硬件', 'semiconductor': '半导体', 'admin': '行政', 'migration': '迁移', 'browser': '浏览器',
+  'plugins': '插件', 'variants': '变体', 'audit-website': '网站审计', 'id-cv-resume-creator': '简历制作', 'c-level-advisor': '高管顾问',
+  'whatsapp-automation-suite': 'WhatsApp 自动化', 'memory-wiki': '记忆维基', 'feishu': '飞书', 'qqbot': 'QQ 机器人', 'mcp': 'MCP',
+  'cloudq-aiops': '云智能运维', 'open-prose': '文案写作', 'communication': '沟通协作',
+};
+function catLabel(cat) {
+  if (!cat) return '其他';
+  return CATEGORY_ZH[cat] || cat;
+}
+
 function header(active) {
   const link = (href, label, key) =>
     `<a href="${href}" class="${active === key ? 'active' : ''}">${label}</a>`;
@@ -104,7 +129,7 @@ function skillCard(skill) {
     </div>
     <p class="skill-desc">${escapeHtml(desc.slice(0, 120))}</p>
     <div class="skill-meta">${badge(skill)}
-      ${skill.category ? `<span class="tag tag-cat">${escapeHtml(skill.category)}</span>` : ''}
+      ${skill.category ? `<span class="tag tag-cat">${escapeHtml(catLabel(skill.category))}</span>` : ''}
     </div>
     <div class="skill-card-foot">
       <span class="dl-count">↓ ${dl}</span>
@@ -113,4 +138,4 @@ function skillCard(skill) {
   </a>`;
 }
 
-module.exports = { header, footer, sourceFilter, skillCard, badge, SOURCE_LABEL, SOURCE_ORDER };
+module.exports = { header, footer, sourceFilter, skillCard, badge, catLabel, SOURCE_LABEL, SOURCE_ORDER, CATEGORY_ZH };

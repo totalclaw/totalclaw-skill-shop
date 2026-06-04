@@ -3,7 +3,7 @@
 const express = require('express');
 const axios = require('axios');
 const { renderPage, escapeHtml, PUBLIC_ORIGIN } = require('./render');
-const { header, footer, sourceFilter, skillCard, badge, SOURCE_LABEL, SOURCE_ORDER } = require('./partials');
+const { header, footer, sourceFilter, skillCard, badge, catLabel, SOURCE_LABEL, SOURCE_ORDER } = require('./partials');
 
 const API_BASE = (process.env.API_BASE || 'http://127.0.0.1:3091').replace(/\/$/, '');
 
@@ -59,7 +59,7 @@ function createMarketRouter() {
   <section>
     <h2>分类</h2>
     <div class="chips">${categories.map((c) =>
-      `<a class="chip" href="/skills?category=${encodeURIComponent(c._id || 'other')}">${escapeHtml(c._id || 'other')} <i>${c.count}</i></a>`).join('')}</div>
+      `<a class="chip" href="/skills?category=${encodeURIComponent(c._id || 'other')}">${escapeHtml(catLabel(c._id))} <i>${c.count}</i></a>`).join('')}</div>
   </section>
 </main>
 ${footer()}`;
@@ -161,7 +161,7 @@ ${footer()}`;
       </div>
     </div>
   </section>
-  <div class="src-filter">${catChip('', '全部分类')}${categories.map((c) => catChip(c._id || 'other', `${c._id || 'other'} (${c.count})`)).join('')}</div>
+  <div class="src-filter">${catChip('', '全部分类')}${categories.map((c) => catChip(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
   <h2>${q || ''}AI 角色 <small>${data.total} 个</small></h2>
   <div class="grid">${items.length ? items.map(skillCard).join('') : '<p class="empty">暂无角色，运行 scripts/roles 生成。</p>'}</div>
   ${pager}
@@ -181,7 +181,7 @@ ${footer()}`;
 <main class="wrap">
   <h1>分类</h1>
   <div class="chips">${(data || []).map((c) =>
-    `<a class="chip" href="/skills?category=${encodeURIComponent(c._id || 'other')}">${escapeHtml(c._id || 'other')} (${c.count})</a>`).join('')}</div>
+    `<a class="chip" href="/skills?category=${encodeURIComponent(c._id || 'other')}">${escapeHtml(catLabel(c._id))} (${c.count})</a>`).join('')}</div>
 </main>
 ${footer()}`;
       res.send(renderPage({ title: '分类', body, canonicalPath: '/categories' }));
