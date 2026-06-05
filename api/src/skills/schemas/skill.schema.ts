@@ -157,5 +157,5 @@ SkillSchema.index({ kind: 1, category: 1 });
 SkillSchema.index({ kind: 1, source: 1 });
 SkillSchema.index({ kind: 1, listingType: 1 });
 SkillSchema.index({ kind: 1, 'stats.downloads': -1 });
-SkillSchema.index({ reviewStatus: 1 });
-SkillSchema.index({ tags: 1 });
+// reviewStatus / tags 的单字段索引已在各自 @Prop({ index: true }) 上声明，
+// 此处不再重复 SkillSchema.index()，否则 Mongoose 会告 "Duplicate schema index" 警告。

@@ -180,6 +180,4 @@ exports.SkillSchema.index({ kind: 1, category: 1 });
 exports.SkillSchema.index({ kind: 1, source: 1 });
 exports.SkillSchema.index({ kind: 1, listingType: 1 });
 exports.SkillSchema.index({ kind: 1, 'stats.downloads': -1 });
-exports.SkillSchema.index({ reviewStatus: 1 });
-exports.SkillSchema.index({ tags: 1 });
 //# sourceMappingURL=skill.schema.js.map
