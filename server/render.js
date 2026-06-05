@@ -1,11 +1,34 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
+
 /**
  * 轻量 SSR 渲染辅助（仿 totalclaw-web/server/render.js 的思路：
  * 统一注入 canonical / OG / JSON-LD，组装页面骨架）。
  */
 
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || 'http://localhost:3090').replace(/\/$/, '');
+
+// 静态资源版本指纹：/assets/* 文件长缓存（nginx 7 天 + 浏览器），同名 URL 内容更新后
+// 会被旧缓存挡住。给 URL 追加 ?v=<文件 mtime 指纹>，内容一变 URL 即变，自动绕开 nginx/浏览器缓存；
+// 内容不变则 URL 不变、继续命中长缓存。进程内缓存指纹，按需惰性计算。
+const ASSETS_DIR = path.join(__dirname, '..', 'assets');
+const _fpCache = new Map();
+function assetUrl(urlPath) {
+  let fp = _fpCache.get(urlPath);
+  if (fp === undefined) {
+    try {
+      const rel = urlPath.replace(/^\/assets\//, '').split('?')[0];
+      const st = fs.statSync(path.join(ASSETS_DIR, rel));
+      fp = Math.floor(st.mtimeMs).toString(36);
+    } catch {
+      fp = ''; // 取不到就不加版本（不影响功能）
+    }
+    _fpCache.set(urlPath, fp);
+  }
+  return fp ? `${urlPath}?v=${fp}` : urlPath;
+}
 
 function escapeHtml(s) {
   return String(s == null ? '' : s)
@@ -33,7 +56,7 @@ function renderPage(o) {
     ? `<script type="application/ld+json">${JSON.stringify(o.jsonLd)}</script>`
     : '';
   const extraScripts = (o.scripts || [])
-    .map((s) => `<script src="${s}" defer></script>`)
+    .map((s) => `<script src="${s.startsWith('/assets/') ? assetUrl(s) : s}" defer></script>`)
     .join('\n');
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -57,13 +80,13 @@ function renderPage(o) {
 <meta property="og:url" content="${escapeHtml(canonical)}">
 <meta property="og:type" content="website">
 <meta property="og:image" content="${escapeHtml(PUBLIC_ORIGIN)}/assets/img/logo-full.png">
-<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="${assetUrl('/assets/css/main.css')}">
 ${jsonLd}
 </head>
 <body>
 <div class="bg-fx" aria-hidden="true"></div>
 ${o.body}
-<script src="/assets/js/app.js" defer></script>
+<script src="${assetUrl('/assets/js/app.js')}" defer></script>
 ${extraScripts}
 </body>
 </html>`;
