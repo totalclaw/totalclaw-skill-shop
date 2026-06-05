@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var SkillsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SkillsService = void 0;
 const common_1 = require("@nestjs/common");
@@ -30,9 +31,23 @@ function cacheSet(key, data) {
         _cache.clear();
     _cache.set(key, { at: Date.now(), data });
 }
-let SkillsService = class SkillsService {
+let SkillsService = SkillsService_1 = class SkillsService {
     constructor(skillModel) {
         this.skillModel = skillModel;
+        this.logger = new common_1.Logger(SkillsService_1.name);
+    }
+    async onModuleInit() {
+        try {
+            const pending = await this.skillModel.countDocuments({ kind: null }).exec();
+            if (pending > 0) {
+                const r = await this.skillModel.updateMany({ kind: null }, { $set: { kind: 'skill' } }).exec();
+                this.logger.log(`kind 补全：${r.modifiedCount} 个无 kind 文档 → 'skill'`);
+            }
+            await this.skillModel.collection.createIndex({ kind: 1, syncedAt: -1, _id: -1 }, { name: 'kind_1_syncedAt_-1__id_-1', background: true });
+        }
+        catch (e) {
+            this.logger.warn('onModuleInit 自愈失败（不影响启动）: ' + e.message);
+        }
     }
     async list(query) {
         const ckey = 'list:' + JSON.stringify(query);
@@ -41,7 +56,7 @@ let SkillsService = class SkillsService {
             return cached;
         const filter = {};
         filter.reviewStatus = { $in: ['n/a', 'approved'] };
-        filter.kind = query.kind === 'role' ? 'role' : { $ne: 'role' };
+        filter.kind = query.kind === 'role' ? 'role' : 'skill';
         if (query.categories) {
             const list = String(query.categories).split(',').map((s) => s.trim()).filter(Boolean);
             if (list.length)
@@ -72,10 +87,18 @@ let SkillsService = class SkillsService {
         const page = query.page || 1;
         const pageSize = query.pageSize || 24;
         const skip = (page - 1) * pageSize;
-        const [items, total] = await Promise.all([
+        const cntKey = 'cnt:' + JSON.stringify(filter);
+        let total = cacheGet(cntKey, 300_000);
+        const tasks = [
             this.skillModel.find(filter).select(LIST_PROJECTION).sort(sort).skip(skip).limit(pageSize).lean().exec(),
-            this.skillModel.countDocuments(filter).exec(),
-        ]);
+        ];
+        if (total === undefined)
+            tasks.push(this.skillModel.countDocuments(filter).exec());
+        const [items, freshCount] = await Promise.all(tasks);
+        if (total === undefined) {
+            total = freshCount;
+            cacheSet(cntKey, total);
+        }
         const res = { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
         cacheSet(ckey, res);
         return res;
@@ -100,7 +123,7 @@ let SkillsService = class SkillsService {
         const c = cacheGet(ck, 600_000);
         if (c)
             return c;
-        const kindMatch = kind === 'role' ? 'role' : { $ne: 'role' };
+        const kindMatch = kind === 'role' ? 'role' : 'skill';
         const match = { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch };
         if (source)
             match.source = source;
@@ -117,7 +140,7 @@ let SkillsService = class SkillsService {
         if (c)
             return c;
         const r = await this.skillModel.aggregate([
-            { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: { $ne: 'role' } } },
+            { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
             { $group: { _id: '$source', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
         ]);
@@ -168,7 +191,7 @@ let SkillsService = class SkillsService {
     }
 };
 exports.SkillsService = SkillsService;
-exports.SkillsService = SkillsService = __decorate([
+exports.SkillsService = SkillsService = SkillsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(skill_schema_1.Skill.name)),
     __metadata("design:paramtypes", [mongoose_2.Model])

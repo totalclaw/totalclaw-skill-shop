@@ -149,6 +149,9 @@ export type SkillDocument = HydratedDocument<Skill>;
 export const SkillSchema = SchemaFactory.createForClass(Skill);
 
 // 列表/聚合常用索引（查询恒含 kind；搜索用 regex 不用 $text，故去掉重的 text 索引）
+// 默认列表排序为 { syncedAt:-1, _id:-1 }（_id 做稳定 tiebreak，批量导入 syncedAt 大量相同时分页不错乱）。
+// 必须带上 _id 这一级，否则计划器无法用索引满足排序、退化为全表 FETCH + 内存 SORT（14万文档 ~1s）。
+SkillSchema.index({ kind: 1, syncedAt: -1, _id: -1 });
 SkillSchema.index({ kind: 1, syncedAt: -1 });
 SkillSchema.index({ kind: 1, category: 1 });
 SkillSchema.index({ kind: 1, source: 1 });

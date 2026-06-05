@@ -54,9 +54,15 @@ function mongoUri() {
   }
   await flush();
 
-  // 确保查询索引（驱动 insert 不会自动建索引；12 万文档无索引会全表扫描 → 超时）。幂等。
+  // 历史 raw 导入可能缺 kind 字段；列表查询用精确 kind:'skill' + {kind,syncedAt,_id} 索引，
+  // 缺 kind 会漏数据且走不上索引。导入后补全，幂等。
+  const fixed = await col.updateMany({ kind: null }, { $set: { kind: 'skill' } });
+  if (fixed.modifiedCount) console.log(`\n==> kind 补全：${fixed.modifiedCount} 个无 kind 文档 → 'skill'`);
+
+  // 确保查询索引（驱动 insert 不会自动建索引；14 万文档无索引会全表扫描 → 超时）。幂等。
   const idx = [
     { key: { skillId: 1 }, name: 'skillId_1', unique: true },
+    { key: { kind: 1, syncedAt: -1, _id: -1 }, name: 'kind_1_syncedAt_-1__id_-1' },
     { key: { kind: 1, syncedAt: -1 }, name: 'kind_syncedAt' },
     { key: { kind: 1, category: 1 }, name: 'kind_category' },
     { key: { kind: 1, source: 1 }, name: 'kind_source' },

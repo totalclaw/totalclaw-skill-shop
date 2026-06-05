@@ -174,6 +174,7 @@ exports.Skill = Skill = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true, collection: 'skills' })
 ], Skill);
 exports.SkillSchema = mongoose_1.SchemaFactory.createForClass(Skill);
+exports.SkillSchema.index({ kind: 1, syncedAt: -1, _id: -1 });
 exports.SkillSchema.index({ kind: 1, syncedAt: -1 });
 exports.SkillSchema.index({ kind: 1, category: 1 });
 exports.SkillSchema.index({ kind: 1, source: 1 });

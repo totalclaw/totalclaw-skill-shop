@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Skill, SkillDocument } from './schemas/skill.schema';
@@ -20,10 +20,35 @@ function cacheSet(key: string, data: unknown) {
 }
 
 @Injectable()
-export class SkillsService {
+export class SkillsService implements OnModuleInit {
+  private readonly logger = new Logger(SkillsService.name);
+
   constructor(
     @InjectModel(Skill.name) private readonly skillModel: Model<SkillDocument>,
   ) {}
+
+  /**
+   * 启动自愈（幂等）：
+   *  1) 把历史 raw 导入遗留的 kind 缺失/为 null 的「技能」补成 'skill'——否则列表查询用精确 kind:'skill'
+   *     会漏掉这些文档；且精确匹配才能走 {kind,syncedAt,_id} 索引（避免 14 万文档内存排序）。
+   *  2) 确保关键复合索引存在（驱动 insert 的种子库不会自动建）。
+   * 部署后无需重导种子，API 一启动即把生产数据与查询口径对齐。
+   */
+  async onModuleInit() {
+    try {
+      const pending = await this.skillModel.countDocuments({ kind: null }).exec();
+      if (pending > 0) {
+        const r = await this.skillModel.updateMany({ kind: null }, { $set: { kind: 'skill' } }).exec();
+        this.logger.log(`kind 补全：${r.modifiedCount} 个无 kind 文档 → 'skill'`);
+      }
+      await this.skillModel.collection.createIndex(
+        { kind: 1, syncedAt: -1, _id: -1 },
+        { name: 'kind_1_syncedAt_-1__id_-1', background: true },
+      );
+    } catch (e) {
+      this.logger.warn('onModuleInit 自愈失败（不影响启动）: ' + (e as Error).message);
+    }
+  }
 
   async list(query: QuerySkillsDto) {
     const ckey = 'list:' + JSON.stringify(query);
@@ -33,8 +58,9 @@ export class SkillsService {
     // 前台默认只展示已上架（社区源 n/a，开发者源 approved）
     filter.reviewStatus = { $in: ['n/a', 'approved'] };
 
-    // kind：role 仅在显式 kind=role 时返回；普通 skill 列表排除角色（兼容历史无 kind 字段的文档）
-    filter.kind = query.kind === 'role' ? 'role' : { $ne: 'role' };
+    // kind：role 取角色，否则取技能。用精确 'skill'（已对历史 null 补全）而非 $ne:'role'——
+    // 精确匹配才能命中 {kind,syncedAt,_id} 索引、避免全表 FETCH+内存排序。
+    filter.kind = query.kind === 'role' ? 'role' : 'skill';
 
     if (query.categories) {
       const list = String(query.categories).split(',').map((s) => s.trim()).filter(Boolean);
@@ -63,10 +89,20 @@ export class SkillsService {
     const pageSize = query.pageSize || 24;
     const skip = (page - 1) * pageSize;
 
-    const [items, total] = await Promise.all([
+    // count 与 filter（不含 page/sort）绑定单独缓存 5min：同一筛选的各页共用、且比列表缓存活得久，
+    // 大幅减少「换页/换排序」时对 14 万集合重复 countDocuments 的冷开销。
+    const cntKey = 'cnt:' + JSON.stringify(filter);
+    let total = cacheGet<number>(cntKey, 300_000);
+
+    const tasks: Promise<unknown>[] = [
       this.skillModel.find(filter).select(LIST_PROJECTION).sort(sort).skip(skip).limit(pageSize).lean().exec(),
-      this.skillModel.countDocuments(filter).exec(),
-    ]);
+    ];
+    if (total === undefined) tasks.push(this.skillModel.countDocuments(filter).exec());
+    const [items, freshCount] = await Promise.all(tasks);
+    if (total === undefined) {
+      total = freshCount as number;
+      cacheSet(cntKey, total);
+    }
 
     const res = { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
     cacheSet(ckey, res);
@@ -96,7 +132,7 @@ export class SkillsService {
     const ck = 'cat:' + (kind === 'role' ? 'role' : 'skill') + (source ? ':' + source : '');
     const c = cacheGet<unknown>(ck, 600_000); // 分类缓存 10min
     if (c) return c;
-    const kindMatch = kind === 'role' ? 'role' : { $ne: 'role' };
+    const kindMatch = kind === 'role' ? 'role' : 'skill';
     const match: Record<string, unknown> = { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch };
     if (source) match.source = source; // 选了来源 → 只统计该来源下的分类
     const r = await this.skillModel.aggregate([
@@ -113,7 +149,7 @@ export class SkillsService {
     const c = cacheGet<unknown>('sources', 600_000); // 来源缓存 10min
     if (c) return c;
     const r = await this.skillModel.aggregate([
-      { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: { $ne: 'role' } } },
+      { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
       { $group: { _id: '$source', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);
