@@ -61,24 +61,22 @@ function header(active) {
       <span class="brand-text"><b>泰途AI</b><i>Skill 市场</i></span>
     </a>
     <nav>
+      <a href="https://www.taituai.com" rel="noopener">官网</a>
       ${link('/skills', '技能库', 'skills')}
       ${link('/roles', 'AI 员工库', 'roles')}
-      ${link('/developer', '开发者', 'developer')}
+      ${'' /* 开发者入口暂时隐藏，后续恢复：把下一行的注释解开
+      + link('/developer', '开发者', 'developer') */}
     </nav>
-    <form class="search" action="/skills" method="get" role="search">
-      <input type="search" name="q" placeholder="搜索 skill…" aria-label="搜索 skill">
-      <button type="submit" aria-label="搜索">⌕</button>
-    </form>
-    <div class="auth-slot" id="authSlot">
-      <a href="/login" class="auth-login">登录</a>
-    </div>
+    <!-- 登录入口暂时隐藏，后续恢复：去掉 hidden 即可（auth-slot 由 app.js 渲染登录态） -->
+    <div class="auth-slot" id="authSlot" hidden></div>
   </div>
 </header>`;
 }
 
-/** 来源筛选条：保留当前查询参数，切换 source。activeSource 为空表示「全部来源」。 */
-function sourceFilter(activeSource, query) {
+/** 来源筛选条：保留当前查询参数，切换 source；显示各来源 skill 数。activeSource 为空表示「全部来源」。 */
+function sourceFilter(activeSource, query, counts, total) {
   const q = query || {};
+  const cnt = counts || {};
   const build = (src) => {
     const o = { ...q, source: src || undefined, page: undefined };
     const qs = Object.entries(o)
@@ -87,11 +85,15 @@ function sourceFilter(activeSource, query) {
       .join('&');
     return '/skills' + (qs ? '?' + qs : '');
   };
-  const tab = (src, label) =>
-    `<a class="src-tab ${(activeSource || '') === (src || '') ? 'active' : ''}" href="${build(src)}">${label}</a>`;
+  const tab = (src, label, n) => {
+    const num = n != null ? ` (${n})` : '';
+    return `<a class="src-tab ${(activeSource || '') === (src || '') ? 'active' : ''}" href="${build(src)}">${label}${num}</a>`;
+  };
+  // 只展示有数据的来源（或当前选中的来源），避免出现「来源 (0)」
+  const sources = SOURCE_ORDER.filter((s) => (cnt[s] || 0) > 0 || activeSource === s);
   return `<div class="src-filter">
-    ${tab('', '全部来源')}
-    ${SOURCE_ORDER.map((s) => tab(s, SOURCE_LABEL[s])).join('')}
+    ${tab('', '全部来源', total != null ? total : undefined)}
+    ${sources.map((s) => tab(s, SOURCE_LABEL[s], cnt[s] || 0)).join('')}
   </div>`;
 }
 
@@ -99,7 +101,7 @@ function footer() {
   return `<footer class="site-footer">
   <div class="wrap">
     <div class="foot-brand">
-      <img src="/assets/img/logo-mark.png" alt="泰途AI" class="foot-mark">
+      <img src="/assets/img/logo-mark.png" alt="泰途AI" class="foot-mark" loading="lazy" decoding="async">
       <div>
         <b>泰途AI · Skill 市场</b>
         <span>多源聚合 · 收费交易 · 一键下载</span>
@@ -115,15 +117,15 @@ function footer() {
 
 function badge(skill) {
   const src = SOURCE_LABEL[skill.source] || skill.source;
-  const paid = skill.listingType === 'paid';
-  const price = paid ? `¥${(skill.pricing && skill.pricing.price) || 0}` : '免费';
   const own = skill.ownership === 'totalclaw-proprietary'
     ? '<span class="tag tag-proprietary">自研闭源</span>'
     : skill.ownership === 'developer'
     ? '<span class="tag tag-dev">开发者</span>'
     : '';
-  return `<span class="tag tag-source">${escapeHtml(src)}</span>
-    <span class="tag ${paid ? 'tag-paid' : 'tag-free'}">${price}</span>${own}`;
+  // 价格标签（¥X / 免费）暂时全局隐藏，后续恢复：把下一行放回 return：
+  // const paid = skill.listingType === 'paid'; const price = paid ? `¥${(skill.pricing && skill.pricing.price) || 0}` : '免费';
+  // <span class="tag ${'${'}paid ? 'tag-paid' : 'tag-free'}">${'${'}price}</span>
+  return `<span class="tag tag-source">${escapeHtml(src)}</span>${own}`;
 }
 
 function skillCard(skill) {
@@ -140,7 +142,6 @@ function skillCard(skill) {
       ${skill.category ? `<span class="tag tag-cat">${escapeHtml(catLabel(skill.category))}</span>` : ''}
     </div>
     <div class="skill-card-foot">
-      <span class="dl-count">↓ ${dl}</span>
       <span class="card-cta">${isRole ? '购买员工 →' : skill.listingType === 'paid' ? '购买下载 →' : '免费下载 →'}</span>
     </div>
   </a>`;

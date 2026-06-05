@@ -19,6 +19,7 @@ const entitlements_service_1 = require("./entitlements.service");
 const guards_1 = require("../auth/guards");
 const skills_service_1 = require("../skills/skills.service");
 const download_util_1 = require("../common/download.util");
+const watermark_util_1 = require("../common/watermark.util");
 let EntitlementsController = class EntitlementsController {
     constructor(entitlements, skills) {
         this.entitlements = entitlements;
@@ -34,12 +35,22 @@ let EntitlementsController = class EntitlementsController {
     async content(req, skillId) {
         const id = decodeURIComponent(skillId);
         const skill = await this.skills.detail(id, true);
-        if (skill.closedSource || skill.listingType === 'paid') {
+        const paid = skill.closedSource || skill.listingType === 'paid';
+        if (paid) {
             const owned = await this.entitlements.has(req.user.userId, id);
             if (!owned)
                 throw new common_1.ForbiddenException('skill not purchased');
         }
-        return this.skills.getContent(id);
+        const doc = await this.skills.getContent(id);
+        if (paid && doc?.contentMd) {
+            doc.contentMd = (0, watermark_util_1.applyWatermark)(doc.contentMd, {
+                userId: String(req.user.userId),
+                username: req.user.username,
+                skillId: id,
+            });
+            doc.watermarked = true;
+        }
+        return doc;
     }
     async download(req, skillId, res) {
         const id = decodeURIComponent(skillId);
@@ -48,6 +59,7 @@ let EntitlementsController = class EntitlementsController {
             const owned = await this.entitlements.has(req.user.userId, id);
             if (!owned)
                 throw new common_1.ForbiddenException('skill not purchased');
+            throw new common_1.ForbiddenException('收费 skill 不提供文件下载，请在网页登录后查看正文使用');
         }
         await this.skills.incrementDownloads(id);
         (0, download_util_1.sendMarkdownAttachment)(res, dl.filename, dl.content);
@@ -73,7 +85,7 @@ __decorate([
 ], EntitlementsController.prototype, "check", null);
 __decorate([
     (0, common_1.Get)('content/:skillId'),
-    (0, swagger_1.ApiOperation)({ summary: '获取已购（含闭源）skill 正文，鉴权放行' }),
+    (0, swagger_1.ApiOperation)({ summary: '获取已购 skill 正文（站内只读查看）；收费正文按买家注入水印' }),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('skillId')),
     __metadata("design:type", Function),
@@ -82,7 +94,7 @@ __decorate([
 ], EntitlementsController.prototype, "content", null);
 __decorate([
     (0, common_1.Get)('download/:skillId'),
-    (0, swagger_1.ApiOperation)({ summary: '下载已购（含收费/闭源）skill 的 SKILL.md，鉴权放行' }),
+    (0, swagger_1.ApiOperation)({ summary: '下载 SKILL.md（仅免费/非闭源；收费 skill 已改为站内只读查看，不提供文件下载）' }),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('skillId')),
     __param(2, (0, common_1.Res)()),

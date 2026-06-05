@@ -42,7 +42,8 @@
       const lo = document.getElementById('logoutBtn');
       if (lo) lo.addEventListener('click', (e) => { e.preventDefault(); SM.logout(); });
     } else {
-      slot.innerHTML = '<a href="/login" class="auth-login">登录</a>';
+      // 登录入口暂时隐藏，后续恢复：把下一行换回 slot.innerHTML = '<a href="/login" class="auth-login">登录</a>';
+      slot.innerHTML = '';
     }
   }
   document.addEventListener('DOMContentLoaded', renderAuthSlot);
@@ -78,21 +79,33 @@
     el.className = 'action-msg' + (kind ? ' ' + kind : '');
   }
 
-  // 详情页付费 skill：登录且已购则切换为「下载」
+  function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+  // 详情页收费 skill：登录且已购 → 在本页只读展示正文（带水印），不提供下载
   async function initSkillDetail() {
     const actions = document.querySelector('.actions[data-skill]');
     if (!actions || actions.dataset.paid !== '1') return;
     if (!SM.token()) return;
     try {
       const { owned } = await SM.api('/entitlements/check/' + encodeURIComponent(actions.dataset.skill));
-      if (owned) {
-        const buy = actions.querySelector('.btn-buy');
-        const dl = actions.querySelector('.btn-download');
-        if (buy) buy.hidden = true;
-        if (dl) dl.hidden = false;
-        setMsg(document.getElementById('actionMsg'), '已购买 · 可直接下载', 'ok');
-      }
+      if (owned) await unlockPaidContent(actions.dataset.skill, actions);
     } catch { /* 未登录或网络问题，保持购买态 */ }
+  }
+  // 已购：拉取带水印正文，只读注入到 .paid-content
+  async function unlockPaidContent(skillId, actions) {
+    const buy = actions.querySelector('.btn-buy');
+    if (buy) buy.hidden = true;
+    setMsg(document.getElementById('actionMsg'), '已购买 · 正文见下方（含买家专属水印，请勿外传）', 'ok');
+    const box = document.querySelector('.paid-content[data-skill]');
+    if (!box) return;
+    try {
+      const doc = await SM.api('/entitlements/content/' + encodeURIComponent(skillId));
+      const md = (doc && doc.contentMd) || '';
+      box.innerHTML = '<div class="wm-note">⚠ 本副本含买家专属隐形水印，仅限本人使用，转载 / 转售可溯源追责。</div>'
+        + '<pre class="skill-content">' + escHtml(md) + '</pre>';
+    } catch (e) {
+      box.innerHTML = '<p class="locked">正文加载失败：' + escHtml(e.message) + '</p>';
+    }
   }
   document.addEventListener('DOMContentLoaded', initSkillDetail);
 
@@ -134,12 +147,10 @@
         }
         setMsg(msg, '支付处理中…');
         await SM.api('/orders/' + encodeURIComponent(order.orderId) + '/simulate-pay', { method: 'POST' });
-        // 解锁：切换按钮并自动下载
-        buy.hidden = true;
-        const dlBtn = document.querySelector('.btn-download[data-skill]');
-        if (dlBtn) dlBtn.hidden = false;
-        setMsg(msg, '支付成功 · 正在下载…', 'ok');
-        await downloadSkill(skillId, true, msg);
+        // 解锁：在本页只读展示正文（带水印），不提供文件下载
+        setMsg(msg, '支付成功 · 正在解锁正文…', 'ok');
+        const actions = buy.closest('.actions[data-skill]') || document.querySelector('.actions[data-skill]');
+        await unlockPaidContent(skillId, actions);
       } catch (err) { setMsg(msg, '失败：' + err.message, 'err'); }
     }
   });

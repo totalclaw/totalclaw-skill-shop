@@ -6,11 +6,18 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards';
 import { UsersService } from '../users/users.service';
 
-// 与 web 共用账号：identifier=手机号/邮箱（兼容老前端传 username 字段）
+// 与 web 共用账号：identifier=手机号/邮箱/用户名（兼容老前端传 username 字段）
 class LoginDto {
   @IsOptional() @IsString() identifier?: string;
   @IsOptional() @IsString() username?: string;
   @IsString() @MinLength(1) password: string;
+}
+
+// 用户名 + 密码 注册（对接 totalclaw-web 本地 web：username≥3、password≥6）
+class RegisterDto {
+  @IsString() @MinLength(3, { message: '用户名至少 3 个字符' }) username: string;
+  @IsString() @MinLength(6, { message: '密码至少 6 位' }) password: string;
+  @IsOptional() @IsString() nickname?: string;
 }
 
 // .taituai.com 父域 cookie，实现与 web 跨子域共享登录态。线上 COOKIE_DOMAIN=.taituai.com
@@ -36,9 +43,11 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  @ApiOperation({ summary: '注册（已与 taituai.com 统一，引导跳转）' })
-  register() {
-    return this.authService.register();
+  @ApiOperation({ summary: '注册（用户名+密码，代理 web 建号，成功即登录）' })
+  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.register(dto);
+    if (result?.accessToken) setAuthCookie(res, result.accessToken);
+    return result;
   }
 
   @Post('login')

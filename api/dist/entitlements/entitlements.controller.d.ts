@@ -15,12 +15,6 @@ export declare class EntitlementsController {
     check(req: any, skillId: string): Promise<{
         owned: boolean;
     }>;
-    content(req: any, skillId: string): Promise<import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, import("../skills/schemas/skill.schema").Skill, {}, {}> & import("../skills/schemas/skill.schema").Skill & {
-        _id: import("mongoose").Types.ObjectId;
-    } & {
-        __v: number;
-    }> & Required<{
-        _id: import("mongoose").Types.ObjectId;
-    }>>;
+    content(req: any, skillId: string): Promise<any>;
     download(req: any, skillId: string, res: Response): Promise<void>;
 }

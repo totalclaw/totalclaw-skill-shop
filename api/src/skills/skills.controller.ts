@@ -17,9 +17,9 @@ export class SkillsController {
   }
 
   @Get('categories')
-  @ApiOperation({ summary: '分类聚合（含计数）；kind=role 聚合角色分类' })
-  categories(@Query('kind') kind?: string) {
-    return this.skillsService.categories(kind);
+  @ApiOperation({ summary: '分类聚合（含计数）；kind=role 聚合角色分类；source 可按来源筛选' })
+  categories(@Query('kind') kind?: string, @Query('source') source?: string) {
+    return this.skillsService.categories(kind, source);
   }
 
   @Get('sources-summary')

@@ -25,8 +25,8 @@ let SkillsController = class SkillsController {
     list(query) {
         return this.skillsService.list(query);
     }
-    categories(kind) {
-        return this.skillsService.categories(kind);
+    categories(kind, source) {
+        return this.skillsService.categories(kind, source);
     }
     sourcesSummary() {
         return this.skillsService.sourcesSummary();
@@ -59,10 +59,11 @@ __decorate([
 ], SkillsController.prototype, "list", null);
 __decorate([
     (0, common_1.Get)('categories'),
-    (0, swagger_1.ApiOperation)({ summary: '分类聚合（含计数）；kind=role 聚合角色分类' }),
+    (0, swagger_1.ApiOperation)({ summary: '分类聚合（含计数）；kind=role 聚合角色分类；source 可按来源筛选' }),
     __param(0, (0, common_1.Query)('kind')),
+    __param(1, (0, common_1.Query)('source')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], SkillsController.prototype, "categories", null);
 __decorate([

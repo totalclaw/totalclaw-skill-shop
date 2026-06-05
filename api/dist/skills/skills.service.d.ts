@@ -19,7 +19,7 @@ export declare class SkillsService {
     }> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }>>;
-    categories(kind?: string): Promise<unknown>;
+    categories(kind?: string, source?: string): Promise<unknown>;
     sourcesSummary(): Promise<unknown>;
     incrementDownloads(skillId: string): Promise<void>;
     buildDownload(skillId: string): Promise<{

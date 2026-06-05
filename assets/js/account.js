@@ -18,13 +18,19 @@
     } catch (err) { msg('loginMsg', '登录失败：' + err.message, false); }
   });
 
-  // 注册
+  // 注册（用户名 + 密码 + 确认密码 + 选填昵称；接口代理到 totalclaw-web）
   const registerForm = document.getElementById('registerForm');
   if (registerForm) registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const d = fd(registerForm);
+    if ((d.username || '').trim().length < 3) { msg('registerMsg', '用户名至少 3 个字符', false); return; }
+    if ((d.password || '').length < 6) { msg('registerMsg', '密码至少 6 位', false); return; }
+    if (d.password !== d.password2) { msg('registerMsg', '两次输入的密码不一致', false); return; }
+    const body = { username: d.username.trim(), password: d.password };
+    if ((d.nickname || '').trim()) body.nickname = d.nickname.trim();
     try {
-      const d = await SM.api('/auth/register', { method: 'POST', body: fd(registerForm) });
-      SM.setAuth(d.accessToken, d.user);
+      const r = await SM.api('/auth/register', { method: 'POST', body });
+      SM.setAuth(r.accessToken, r.user);
       location.href = '/me';
     } catch (err) { msg('registerMsg', '注册失败：' + err.message, false); }
   });
@@ -52,17 +58,10 @@
     try {
       const owned = await SM.api('/entitlements/mine');
       const box = document.getElementById('ownedList');
+      // 收费 skill 不提供文件下载，改为「查看」进入详情页只读阅读（带水印）
       box.innerHTML = owned.length
-        ? owned.map((o) => `<div class="row"><a href="/skills/${encodeURIComponent(o.skillId)}">${esc(o.skillId)}</a><span class="tag">${esc(o.source)}</span><button class="dl-btn" data-dl="${esc(o.skillId)}">下载</button></div>`).join('')
+        ? owned.map((o) => `<div class="row"><a href="/skills/${encodeURIComponent(o.skillId)}">${esc(o.skillId)}</a><span class="tag">${esc(o.source)}</span><a class="dl-btn" href="/skills/${encodeURIComponent(o.skillId)}">查看</a></div>`).join('')
         : '<p class="muted">暂无已购</p>';
-      box.addEventListener('click', async (e) => {
-        const b = e.target.closest('[data-dl]');
-        if (!b) return;
-        b.disabled = true; const o = b.textContent; b.textContent = '下载中…';
-        try { await SM.downloadSkill(b.dataset.dl, true); b.textContent = '已下载'; }
-        catch (err) { alert('下载失败：' + err.message); b.textContent = o; }
-        finally { b.disabled = false; setTimeout(() => { b.textContent = '下载'; }, 1500); }
-      });
     } catch (e) { document.getElementById('ownedList').textContent = e.message; }
 
     // 订单

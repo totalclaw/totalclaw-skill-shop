@@ -91,13 +91,16 @@ export class SkillsService {
   }
 
   /** 分类聚合（含计数）。kind='role' 时按角色聚合，否则排除角色。 */
-  async categories(kind?: string) {
-    const ck = 'cat:' + (kind === 'role' ? 'role' : 'skill');
+  async categories(kind?: string, source?: string) {
+    // 缓存 key 含 source，保证「按来源切换分类」时各来源各自缓存
+    const ck = 'cat:' + (kind === 'role' ? 'role' : 'skill') + (source ? ':' + source : '');
     const c = cacheGet<unknown>(ck, 600_000); // 分类缓存 10min
     if (c) return c;
     const kindMatch = kind === 'role' ? 'role' : { $ne: 'role' };
+    const match: Record<string, unknown> = { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch };
+    if (source) match.source = source; // 选了来源 → 只统计该来源下的分类
     const r = await this.skillModel.aggregate([
-      { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch } },
+      { $match: match },
       { $group: { _id: '$category', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);

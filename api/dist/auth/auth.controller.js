@@ -36,6 +36,23 @@ __decorate([
     (0, class_validator_1.MinLength)(1),
     __metadata("design:type", String)
 ], LoginDto.prototype, "password", void 0);
+class RegisterDto {
+}
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(3, { message: '用户名至少 3 个字符' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "username", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(6, { message: '密码至少 6 位' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "password", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "nickname", void 0);
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
 const COOKIE_SECURE = process.env.COOKIE_SECURE !== '0';
 function setAuthCookie(res, token) {
@@ -53,8 +70,11 @@ let AuthController = class AuthController {
         this.authService = authService;
         this.usersService = usersService;
     }
-    register() {
-        return this.authService.register();
+    async register(dto, res) {
+        const result = await this.authService.register(dto);
+        if (result?.accessToken)
+            setAuthCookie(res, result.accessToken);
+        return result;
     }
     async login(dto, res) {
         const result = await this.authService.login(dto.identifier || dto.username || '', dto.password);
@@ -84,10 +104,12 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)('register'),
-    (0, swagger_1.ApiOperation)({ summary: '注册（已与 taituai.com 统一，引导跳转）' }),
+    (0, swagger_1.ApiOperation)({ summary: '注册（用户名+密码，代理 web 建号，成功即登录）' }),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [RegisterDto, Object]),
+    __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
 __decorate([
     (0, common_1.Post)('login'),

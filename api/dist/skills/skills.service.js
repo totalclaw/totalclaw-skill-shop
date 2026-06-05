@@ -95,14 +95,17 @@ let SkillsService = class SkillsService {
             throw new common_1.NotFoundException('skill not found');
         return doc;
     }
-    async categories(kind) {
-        const ck = 'cat:' + (kind === 'role' ? 'role' : 'skill');
+    async categories(kind, source) {
+        const ck = 'cat:' + (kind === 'role' ? 'role' : 'skill') + (source ? ':' + source : '');
         const c = cacheGet(ck, 600_000);
         if (c)
             return c;
         const kindMatch = kind === 'role' ? 'role' : { $ne: 'role' };
+        const match = { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch };
+        if (source)
+            match.source = source;
         const r = await this.skillModel.aggregate([
-            { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch } },
+            { $match: match },
             { $group: { _id: '$category', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
         ]);

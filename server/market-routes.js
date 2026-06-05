@@ -7,6 +7,12 @@ const { header, footer, sourceFilter, skillCard, badge, catLabel, isFunctionalCa
 
 const API_BASE = (process.env.API_BASE || 'http://127.0.0.1:3091').replace(/\/$/, '');
 
+// 详情页是否展示「下载/购买/使用方式」。暂时关闭，后续开放：设为 true 或用 env SHOW_ACQUIRE=1。
+const SHOW_ACQUIRE = process.env.SHOW_ACQUIRE === '1';
+
+// 收费项目「购买下载/购买员工」暂未开放线上自助购买，点击弹窗引导联系销售。后续接入支付后可去掉弹窗。
+const SALES_PHONE = process.env.SALES_PHONE || '13141015749';
+
 function api() {
   return axios.create({ baseURL: `${API_BASE}/api`, timeout: 30000 });
 }
@@ -36,14 +42,12 @@ function createMarketRouter() {
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-copy">
-        <span class="hero-kicker">多社区聚合 · 收费交易 · 一键下载</span>
         <h1>泰途AI <span class="grad">Skill 市场</span></h1>
-        <p>聚合 TotalClaw · OpenClaw · Hermes · GitHub · 腾讯 多社区 Skill，统一检索安装，支持收费 Skill 在线交易与下载。</p>
         <form class="hero-search" action="/skills" method="get" role="search">
           <input type="search" name="q" placeholder="搜索 skill 名称 / 关键词 / 能力…" aria-label="搜索 skill">
           <button type="submit">搜索</button>
         </form>
-        <p class="hero-stat">已收录 <strong>${featured.data.total || 0}</strong> 个 skill · 覆盖 ${(srcSummary.data || []).length || 5} 个来源</p>
+        <p class="hero-stat">已收录 <strong>${featured.data.total || 0}</strong> 个 skill</p>
       </div>
       <div class="hero-logo"><img src="/assets/img/logo-full.png" alt="泰途AI"></div>
     </div>
@@ -82,11 +86,17 @@ ${footer()}`;
         page: req.query.page || 1,
         pageSize: 24,
       };
-      const [{ data }, cats] = await Promise.all([
+      const [{ data }, cats, srcSummary] = await Promise.all([
         api().get('/skills', { params }),
-        api().get('/skills/categories').catch(() => ({ data: [] })),
+        // 分类随来源联动：选了来源 → 只取该来源下的分类
+        api().get('/skills/categories', { params: { source: req.query.source } }).catch(() => ({ data: [] })),
+        api().get('/skills/sources-summary').catch(() => ({ data: [] })),
       ]);
       const items = data.items || [];
+      // 各来源 skill 数（用于来源筛选条显示计数）
+      const srcCount = {};
+      let srcTotal = 0;
+      (srcSummary.data || []).forEach((s) => { srcCount[s._id] = s.count; srcTotal += s.count; });
       // 分类快捷入口（融合自原「分类」菜单）：常用 30 个直显，其余收进「更多分类」
       const allCats = cats.data || [];
       const shownCats = allCats.slice(0, 30);
@@ -119,7 +129,7 @@ ${footer()}`;
     <button type="submit">搜索</button>
   </form>
   <div class="src-filter">${ltTab('', '全部')}${ltTab('free', '免费')}${ltTab('paid', '收费')}</div>
-  ${sourceFilter(req.query.source, req.query)}
+  ${sourceFilter(req.query.source, req.query, srcCount, srcTotal)}
   <div class="src-filter cat-shortcuts">${catTab('', '全部分类')}${shownCats.map((c) => catTab(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
   ${moreCats.length ? `<details class="cat-more"${moreCats.some((c) => (c._id || 'other') === catVal) ? ' open' : ''}>
     <summary>更多分类（${moreCats.length}）</summary>
@@ -188,8 +198,8 @@ ${footer()}`;
   <section class="hero roles-hero">
     <div class="hero-inner">
       <div class="hero-copy">
-        <span class="hero-kicker">TotalClaw AI 员工库 · 即买即用的岗位人格</span>
         <h1>AI <span class="grad">员工库</span></h1>
+        <span class="hero-kicker">TotalClaw AI 员工库 · 即买即用的岗位人格</span>
         <p>覆盖研发、设计、营销、销售、金融、法律等岗位的专家级 Agent 人格，购买后即可下载部署，让 AI 按真实岗位标准工作。</p>
         <form class="hero-search" action="/roles" method="get" role="search">
           <input type="search" name="q" value="${escapeHtml(req.query.q || '')}" placeholder="搜索员工 / 岗位…" aria-label="搜索员工">
@@ -238,36 +248,72 @@ ${footer()}`;
       const { data: s } = await api().get(`/skills/${encodeURIComponent(id)}`);
       const desc = s.descriptionZh || s.description || '';
       const paid = s.listingType === 'paid';
+      const isRole = s.kind === 'role';
       const price = (s.pricing && s.pricing.price) || 0;
-      const content = s.contentMd
+      // 正文：免费直接渲染 SKILL.md；收费不在 SSR 输出明文，给联系销售占位
+      const content = paid
+        ? `<div class="paid-content" data-skill="${escapeHtml(s.skillId)}">
+            <p class="locked">🔒 收费内容 · 该项目为 TotalClaw 自营收费内容，暂未开放线上自助购买，请联系销售开通。</p>
+          </div>`
+        : s.contentMd
         ? `<pre class="skill-content">${escapeHtml(s.contentMd.slice(0, 8000))}</pre>`
-        : paid
-        ? '<p class="locked">🔒 该 skill 为收费内容，购买后可查看 / 下载完整正文。</p>'
         : '';
-      // 操作区：付费走「购买 → 模拟支付 → 下载」（owned 状态由 app.js 客户端校验后切换）
-      const actions = paid
-        ? `<button class="btn btn-primary btn-buy" data-skill="${escapeHtml(s.skillId)}" data-price="${price}">购买 ¥${price}</button>
-           <button class="btn btn-primary btn-download" data-skill="${escapeHtml(s.skillId)}" data-paid="1" hidden>下载 SKILL.md</button>`
-        : `<button class="btn btn-primary btn-download" data-skill="${escapeHtml(s.skillId)}" data-paid="0">下载 SKILL.md</button>`;
 
-      // 多种命令下载模式
       const enc = encodeURIComponent(s.skillId);
       const slugName = (s.slug || s.skillId).replace(/[^a-zA-Z0-9._-]+/g, '-');
       const cliCmd = `totalclaw install ${s.skillId}`;
       const curlFree = `curl -fsSL ${PUBLIC_ORIGIN}/api/skills/${enc}/file -o ${slugName}.md`;
-      const curlPaid = `curl -fsSL -H "Authorization: Bearer $TOTALCLAW_TOKEN" \\
-  ${PUBLIC_ORIGIN}/api/entitlements/download/${enc} -o ${slugName}.md`;
       const cmdRow = (label, cmd, note) =>
         `<div class="cmd-row">
           <div class="cmd-label">${escapeHtml(label)}${note ? `<i>${escapeHtml(note)}</i>` : ''}</div>
           <div class="cmd-box"><code>${escapeHtml(cmd)}</code><button class="copy-btn" data-copy="${escapeHtml(cmd)}">复制</button></div>
         </div>`;
-      const installPanel = `<section class="install-panel">
+
+      // 联系销售弹窗（仅收费项目注入）。后续接入线上支付后可移除。
+      const salesModal = `<div id="tcSalesModal" class="tc-modal" hidden>
+        <div class="tc-modal-mask" data-tc-close></div>
+        <div class="tc-modal-box" role="dialog" aria-modal="true" aria-labelledby="tcSalesTitle">
+          <h3 id="tcSalesTitle">购买咨询</h3>
+          <p>该项目为 TotalClaw 自营收费内容，暂未开放线上自助购买。</p>
+          <p class="tc-sales-line">请联系销售：<a href="tel:${SALES_PHONE}"><strong>${SALES_PHONE}</strong></a></p>
+          <button class="btn btn-primary" type="button" data-tc-close>知道了</button>
+        </div>
+      </div>
+      <style>
+        .tc-modal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center}
+        .tc-modal[hidden]{display:none}
+        .tc-modal-mask{position:absolute;inset:0;background:rgba(15,23,42,.55)}
+        .tc-modal-box{position:relative;background:#fff;border-radius:14px;padding:28px 32px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center}
+        .tc-modal-box h3{margin:0 0 12px;font-size:20px}
+        .tc-modal-box p{margin:6px 0;color:#475569;line-height:1.6}
+        .tc-sales-line{font-size:17px;color:#0f172a!important}
+        .tc-sales-line a{color:#2563eb;text-decoration:none}
+        .tc-modal-box .btn{margin-top:18px}
+      </style>
+      <script>(function(){var m=document.getElementById('tcSalesModal');if(!m)return;document.addEventListener('click',function(e){if(e.target.closest('[data-contact-sales]')){e.preventDefault();m.hidden=false;}else if(e.target.closest('[data-tc-close]')){m.hidden=true;}});document.addEventListener('keydown',function(e){if(e.key==='Escape')m.hidden=true;});})();</script>`;
+
+      // 操作区 + 使用说明：
+      //  - 免费：直接「下载 SKILL.md」+ cURL/CLI 命令下载（展示使用说明）；
+      //  - 收费（TotalClaw 自营）：「购买下载/购买员工」点击弹联系销售窗口，暂不走线上自助购买。
+      const acquire = paid
+        ? `<div class="actions">
+        <button class="btn btn-primary" type="button" data-contact-sales>${isRole ? '购买员工' : '购买下载'}</button>
+        ${s.repository ? `<a class="btn btn-ghost" href="${escapeHtml(s.repository)}" target="_blank" rel="noopener">源码 ↗</a>` : ''}
+      </div>
+      <section class="install-panel">
+        <h2>购买与使用</h2>
+        <p class="install-note">该项目为 TotalClaw 自营收费内容，暂未开放线上自助购买。请联系销售开通：<a href="tel:${SALES_PHONE}"><strong>${SALES_PHONE}</strong></a></p>
+      </section>
+      ${salesModal}`
+        : `<div class="actions" data-skill="${escapeHtml(s.skillId)}" data-paid="0">
+        <button class="btn btn-primary btn-download" data-skill="${escapeHtml(s.skillId)}" data-paid="0">下载 SKILL.md</button>
+        ${s.repository ? `<a class="btn btn-ghost" href="${escapeHtml(s.repository)}" target="_blank" rel="noopener">源码 ↗</a>` : ''}
+        <span class="action-msg" id="actionMsg"></span>
+      </div>
+      <section class="install-panel">
         <h2>安装 / 下载方式</h2>
-        ${cmdRow('TotalClaw CLI', cliCmd, paid ? '需先购买并登录 CLI' : '推荐')}
-        ${paid
-          ? cmdRow('cURL（已购）', curlPaid, '$TOTALCLAW_TOKEN 为登录后的访问令牌')
-          : cmdRow('cURL', curlFree, '直接下载，无需登录')}
+        ${cmdRow('TotalClaw CLI', cliCmd, '推荐')}
+        ${cmdRow('cURL', curlFree, '直接下载，无需登录')}
         ${s.repository ? cmdRow('Git 仓库', `git clone ${s.repository}`, '获取源码') : ''}
         ${s.installCommand ? cmdRow('原始命令', s.installCommand, '来源自带') : ''}
       </section>`;
@@ -287,14 +333,9 @@ ${footer()}`;
   <div class="skill-meta">${badge(s)}
     ${s.author ? `<span class="tag">作者 ${escapeHtml(s.author)}</span>` : ''}
     ${s.version ? `<span class="tag">v${escapeHtml(s.version)}</span>` : ''}
-    <span class="tag">↓ ${(s.stats && s.stats.downloads) || 0}</span>
   </div>
   <p class="lead">${escapeHtml(desc)}</p>
-  <div class="actions" data-skill="${escapeHtml(s.skillId)}" data-paid="${paid ? 1 : 0}">${actions}
-    ${s.repository ? `<a class="btn btn-ghost" href="${escapeHtml(s.repository)}" target="_blank" rel="noopener">源码 ↗</a>` : ''}
-    <span class="action-msg" id="actionMsg"></span>
-  </div>
-  ${installPanel}
+  ${acquire}
   ${content}
 </main>
 ${footer()}`;
@@ -305,14 +346,15 @@ ${footer()}`;
     }
   });
 
-  // 登录页
+  // 登录页 —— 暂时隐藏，访问 /login 直接回首页。后续恢复：取消下面整段注释、删掉这条 redirect。
+  router.get('/login', (req, res) => res.redirect('/'));
+  /*
   router.get('/login', (req, res) => {
     const body = `${header()}
 <main class="wrap auth-page">
   <div class="auth-head">
     <img src="/assets/img/logo-mark.png" alt="泰途AI" class="auth-logo">
     <h1>登录</h1>
-    <p class="auth-sub">与 taituai.com 共用同一账号，用手机号 / 邮箱 + 密码登录</p>
   </div>
   <form id="loginForm" class="card-form">
     <label>手机号 / 邮箱<input name="identifier" required autocomplete="username"></label>
@@ -320,26 +362,29 @@ ${footer()}`;
     <button type="submit">登录</button>
     <p class="form-msg" id="loginMsg"></p>
   </form>
-  <p class="auth-alt">还没有账号？<a href="https://taituai.com" target="_blank" rel="noopener">去 taituai.com 注册</a></p>
+  <p class="auth-alt">还没有账号？<a href="/register">注册</a></p>
 </main>
 ${footer()}`;
     res.send(renderPage({ title: '登录', body, canonicalPath: '/login', scripts: ['/assets/js/account.js'] }));
   });
+  */
 
-  // 注册页
+  // 注册页（手机号 + 验证码 + 密码 + 选填邮箱/昵称；接口走 web）
   router.get('/register', (req, res) => {
     const body = `${header()}
 <main class="wrap auth-page">
   <div class="auth-head">
     <img src="/assets/img/logo-mark.png" alt="泰途AI" class="auth-logo">
     <h1>注册</h1>
-    <p class="auth-sub">本站与 taituai.com 共用同一账号体系</p>
   </div>
-  <div class="card-form">
-    <p>请前往 <strong>taituai.com</strong> 注册账号（手机号 / 邮箱），注册后即可在本站直接登录。</p>
-    <a class="btn btn-primary" href="https://taituai.com" target="_blank" rel="noopener" style="text-align:center">去 taituai.com 注册</a>
-  </div>
-  <p class="auth-alt">已有账号？<a href="/login">去登录</a></p>
+  <form id="registerForm" class="card-form">
+    <label>用户名<input name="username" required minlength="3" autocomplete="username" placeholder="至少 3 个字符"></label>
+    <label>密码<input name="password" type="password" required minlength="6" autocomplete="new-password" placeholder="至少 6 位"></label>
+    <label>确认密码<input name="password2" type="password" required minlength="6" autocomplete="new-password" placeholder="再次输入密码"></label>
+    <label>昵称（选填）<input name="nickname" autocomplete="nickname" placeholder="可留空"></label>
+    <button type="submit">注册</button>
+    <p class="form-msg" id="registerMsg"></p>
+  </form>
 </main>
 ${footer()}`;
     res.send(renderPage({ title: '注册', body, canonicalPath: '/register', scripts: ['/assets/js/account.js'] }));
@@ -430,7 +475,8 @@ ${footer()}`;
     res.send(renderPage({ title: '管理后台', body, canonicalPath: '/admin', scripts: ['/assets/js/admin.js'] }));
   });
 
-  // 开发者入口（占位）
+  // 开发者入口（占位）—— 暂时关闭，后续恢复：取消下面整段注释即可
+  /*
   router.get('/developer', (req, res) => {
     const body = `${header('developer')}
 <main class="wrap">
@@ -447,6 +493,7 @@ ${footer()}`;
 ${footer()}`;
     res.send(renderPage({ title: '开发者中心', body, canonicalPath: '/developer' }));
   });
+  */
 
   return router;
 }

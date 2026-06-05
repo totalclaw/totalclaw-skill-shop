@@ -6,12 +6,33 @@ declare class LoginDto {
     username?: string;
     password: string;
 }
+declare class RegisterDto {
+    username: string;
+    password: string;
+    nickname?: string;
+}
 export declare class AuthController {
     private readonly authService;
     private readonly usersService;
     constructor(authService: AuthService, usersService: UsersService);
-    register(): Promise<void>;
-    login(dto: LoginDto, res: Response): Promise<any>;
+    register(dto: RegisterDto, res: Response): Promise<{
+        accessToken: string;
+        user: {
+            id: string;
+            username: string;
+            roles: string[];
+            nickname: string;
+        };
+    }>;
+    login(dto: LoginDto, res: Response): Promise<{
+        accessToken: string;
+        user: {
+            id: string;
+            username: string;
+            roles: string[];
+            nickname: string;
+        };
+    }>;
     logout(res: Response): {
         ok: boolean;
     };

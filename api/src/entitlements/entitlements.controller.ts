@@ -5,6 +5,7 @@ import { EntitlementsService } from './entitlements.service';
 import { JwtAuthGuard } from '../auth/guards';
 import { SkillsService } from '../skills/skills.service';
 import { sendMarkdownAttachment } from '../common/download.util';
+import { applyWatermark } from '../common/watermark.util';
 
 @ApiTags('entitlements')
 @ApiBearerAuth('JWT-auth')
@@ -30,26 +31,38 @@ export class EntitlementsController {
   }
 
   @Get('content/:skillId')
-  @ApiOperation({ summary: '获取已购（含闭源）skill 正文，鉴权放行' })
+  @ApiOperation({ summary: '获取已购 skill 正文（站内只读查看）；收费正文按买家注入水印' })
   async content(@Request() req, @Param('skillId') skillId: string) {
     const id = decodeURIComponent(skillId);
     const skill = await this.skills.detail(id, true);
-    // 免费/非闭源直接放行；闭源需校验权益
-    if (skill.closedSource || skill.listingType === 'paid') {
+    const paid = skill.closedSource || skill.listingType === 'paid';
+    if (paid) {
       const owned = await this.entitlements.has(req.user.userId, id);
       if (!owned) throw new ForbiddenException('skill not purchased');
     }
-    return this.skills.getContent(id);
+    const doc: any = await this.skills.getContent(id);
+    // 收费正文：注入「买家专属水印」（可见授权声明 + 隐形指纹），泄露可溯源
+    if (paid && doc?.contentMd) {
+      doc.contentMd = applyWatermark(doc.contentMd, {
+        userId: String(req.user.userId),
+        username: req.user.username,
+        skillId: id,
+      });
+      doc.watermarked = true;
+    }
+    return doc;
   }
 
   @Get('download/:skillId')
-  @ApiOperation({ summary: '下载已购（含收费/闭源）skill 的 SKILL.md，鉴权放行' })
+  @ApiOperation({ summary: '下载 SKILL.md（仅免费/非闭源；收费 skill 已改为站内只读查看，不提供文件下载）' })
   async download(@Request() req, @Param('skillId') skillId: string, @Res() res: Response) {
     const id = decodeURIComponent(skillId);
     const dl = await this.skills.buildDownload(id);
+    // 收费/闭源：不再提供裸文件下载（防转售/复刻），引导到站内只读查看
     if (dl.closedSource || dl.listingType === 'paid') {
       const owned = await this.entitlements.has(req.user.userId, id);
       if (!owned) throw new ForbiddenException('skill not purchased');
+      throw new ForbiddenException('收费 skill 不提供文件下载，请在网页登录后查看正文使用');
     }
     await this.skills.incrementDownloads(id);
     sendMarkdownAttachment(res, dl.filename, dl.content);
