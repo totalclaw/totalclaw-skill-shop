@@ -17,6 +17,9 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { MongoClient } = require('mongodb');
+const { filterDutiesForRole, mergeRoleDuties, dutiesFromTitle: titleDutiesFromTitle, isGenericDuty, isDevRoleTitle } = require('./role-duty-helpers');
+const { resolvePack } = require('./blueprint-steps');
+const { resolveRoleTypePack } = require('./blueprint-steps/role-type-fallback');
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27018/totalclaw';
 const BATCH_BY = 'complete-totalclaw-agent-role-skills';
@@ -92,6 +95,12 @@ function coreToken(name) {
   return String(name).replace(/(工程师|架构师|设计师|分析师|工程|师|员|经理|专员|主管|总监|顾问|代表|专家|官|长|助理|策划|运营|开发|测试)$/, '').trim();
 }
 
+function hasTitleAnchoredDuties(name, responsibilities) {
+  const tok = coreToken(name);
+  if (tok.length >= 2 && responsibilities.some((r) => r.includes(tok) || r.includes(name))) return true;
+  return responsibilities.length >= 4 && responsibilities.some((r) => r.includes(name.slice(0, 2)));
+}
+
 // 相关性闸门：判断角色名是否与其人格描述/职责语义相关，避免把错配的品类兜底人格注入技能
 function isProfileRelevant(name, description, responsibilities) {
   const tok = coreToken(name);
@@ -107,10 +116,12 @@ function isProfileRelevant(name, description, responsibilities) {
 }
 
 function buildProfile(roleDoc) {
-  const responsibilities = extractResponsibilities(roleDoc);
-  const description = (roleDoc.description || roleDoc.descriptionZh || '').trim();
+  const raw = extractResponsibilities(roleDoc);
   const name = roleDoc.name;
-  const relevant = isProfileRelevant(name, description, responsibilities);
+  const category = roleDoc.category || '通用岗位';
+  const responsibilities = filterDutiesForRole(name, category, raw);
+  const description = (roleDoc.description || roleDoc.descriptionZh || '').trim();
+  const relevant = isProfileRelevant(name, description, responsibilities.length ? responsibilities : raw);
   return {
     name,
     slug: roleDoc.slug || slugify(name),
@@ -251,26 +262,84 @@ function yamlEscape(s) {
   return String(s).replace(/"/g, '\\"');
 }
 
-function buildBody(profile, blueprint, skillId) {
+function buildFallbackExample(profile, blueprint) {
+  const duty = (profile.enrichedDuties || profile.responsibilities || [])[0] || `${profile.name}核心工作`;
+  const dutyHint = duty.length > 28 ? `${duty.slice(0, 28)}…` : duty;
+  const bySuffix = {
+    '任务澄清与目标拆解': {
+      input: `例：${profile.category}场景，${profile.name}需在本周五前完成「${dutyHint}」相关交付，约束含预算/合规/协作方 3 项`,
+      output: '任务澄清表：目标、范围、验收标准、待确认问题清单、责任人、截止时间',
+    },
+    '工作流规划与里程碑排期': {
+      input: `例：2 周周期，${profile.name}需并行推进 ${profile.category} 下 2 条工作流，其中 1 条依赖外部审批`,
+      output: '里程碑表：阶段划分、起止日期、依赖项、阻塞风险与备选路径',
+    },
+    '信息收集与证据台账': {
+      input: `例：手头有制度文件 v1.1、业务数据导出 CSV、缺 1 份签字版授权/确认记录`,
+      output: '证据台账：来源、版本、可用性、缺失项、脱敏要求、责任人',
+    },
+    '方案生成与备选比较': {
+      input: `例：需在成本/质量/时效三目标间取舍，给出 ${profile.name} 可执行的 2~3 套方案`,
+      output: '方案对比表：选项、前提、优缺点、推荐方案与批准待办',
+    },
+    '质量检查与风险复核': {
+      input: `例：初稿已完成，需按 ${profile.category} 岗位标准做交付前复核，重点查 3 类常见遗漏`,
+      output: '质检清单：检查项、结果、风险等级、整改建议、是否可放行',
+    },
+    '自动化提示词与工具调用清单': {
+      input: `例：重复性工作占 40%，希望列出 ${profile.name} 可脚本化/模板化的步骤与工具`,
+      output: '自动化清单：步骤、工具/MCP、输入输出、人工复核点、预期节省工时',
+    },
+    '交付物撰写与汇报': {
+      input: `例：面向业务负责人汇报，需 1 页摘要 + 附录明细，强调结论与下一步`,
+      output: '汇报稿骨架：摘要、关键发现、数据依据、风险、决策建议、行动项',
+    },
+    '复盘沉淀与知识库更新': {
+      input: `例：刚完成一轮 ${dutyHint}，需沉淀模板并标注不可对外共享的敏感段落`,
+      output: '复盘记录：结果对比、根因、可复用模板、知识库条目、改进动作',
+    },
+  };
+  return bySuffix[blueprint.suffix] || {
+    input: `例：${profile.category}场景下 ${profile.name} 收到一项 3 日内需反馈的任务（含 2 条硬性约束）`,
+    output: `按上文「输出」清单给出 ${blueprint.outputs.slice(0, 2).join('、')}，并附待确认问题`,
+  };
+}
+
+function buildBody(profile, blueprint, skillId, opts = {}) {
+  const deep = !!opts.deep;
   const skillName = `${profile.name}${blueprint.suffix}`;
   let name = fmName(profile, blueprint.suffix);
   // frontmatter name 追加 skillId 短哈希，确保全局唯一（同名角色不撞车）
   name = `${name}-${shortHash(skillId)}`;
 
   const tags = ['totalclaw-agent', '岗位技能', profile.category, profile.name, blueprint.suffix];
+  const blueprintAware = !!opts.blueprintAware;
+  const version = blueprintAware ? '1.5.2' : (opts.usabilityV2 ? '1.4.0' : (deep ? '1.3.0' : '1.2.0'));
+
+  const dutyPool = profile.enrichedDuties || profile.responsibilities;
+  const respForScene = dutyPool.slice(0, blueprintAware ? 5 : (deep ? 5 : 3));
+
+  const domainPack = blueprintAware
+    ? (resolvePack(profile, blueprint.suffix) || resolveRoleTypePack(profile, blueprint.suffix))
+    : null;
+  const inputLines = domainPack?.inputs || blueprint.inputs;
+  const stepLines = domainPack?.steps || (blueprintAware ? resolveRoleTypePack(profile, blueprint.suffix)?.steps : null);
+  const concreteExample = domainPack?.example || (blueprintAware ? buildFallbackExample(profile, blueprint) : null);
 
   // 职责注入：仅当人格与角色名相关时注入具体职责与描述；否则走安全框架（只用角色名+品类）
   let sceneLines;
   if (profile.relevant) {
-    const resp = profile.responsibilities.slice(0, 3);
-    const respLines = resp.length
-      ? resp.map((r) => `- 围绕「${r}」这类职责展开，确保产出贴合岗位实际。`)
+    const respLines = respForScene.length
+      ? respForScene.map((r) => `- 围绕「${r}」这类职责展开，确保产出贴合岗位实际。`)
       : [`- 围绕${profile.name}在${profile.category}方向的核心职责展开，确保产出贴合岗位实际。`];
     sceneLines = [
       `- 角色：${profile.name}（${profile.category}）。`,
       profile.description ? `- 定位：${profile.description}` : `- 定位：${profile.category}方向的专业岗位。`,
       ...respLines,
     ];
+    if ((deep || blueprintAware) && respForScene.length >= 2) {
+      sceneLines.push(`- 本技能侧重：${blueprint.suffix}，与上述职责形成闭环。`);
+    }
   } else {
     // 安全框架：不引用可能错配的人格描述/职责，只锚定角色名与品类
     sceneLines = [
@@ -302,7 +371,7 @@ function buildBody(profile, blueprint, skillId) {
     '---',
     `name: ${name}`,
     `description: "${yamlEscape(blueprint.desc(profile))}"`,
-    'version: 1.1.0',
+    `version: ${version}`,
     'author: TotalClaw',
     'metadata:',
     '  totalclaw:',
@@ -328,12 +397,28 @@ function buildBody(profile, blueprint, skillId) {
     '',
     '## 输入',
     '',
-    ...blueprint.inputs.map((i) => `- ${i}`),
+    ...inputLines.map((i) => `- ${i}`),
     '',
     '## 步骤',
     '',
-    ...blueprint.steps(profile).map((s, i) => `${i + 1}. ${s}`),
+    ...(() => {
+      const base = stepLines || blueprint.steps(profile);
+      const useAlign = (deep || opts.usabilityV2 || blueprintAware) && respForScene.length;
+      if (!useAlign) return base.map((s, i) => `${i + 1}. ${s}`);
+      return base.map((s, i) => {
+        const extra = i === 2 && respForScene.length ? `（对齐职责：${respForScene[i % respForScene.length]}）` : '';
+        return `${i + 1}. ${s}${extra}`;
+      });
+    })(),
     '',
+    ...((deep || blueprintAware) && respForScene.length >= 2
+      ? [
+          '## 岗位关键动作',
+          '',
+          ...respForScene.slice(0, 4).map((r) => `- ${r}`),
+          '',
+        ]
+      : []),
     '## 输出',
     '',
     ...blueprint.outputs.map((o) => `- ${o}`),
@@ -349,6 +434,12 @@ function buildBody(profile, blueprint, skillId) {
     '- 目标漂移：每步对照原始目标与验收标准核对一次。',
     '- 过度承诺：区分「已验证事实」与「推测」，对不确定项明确标注。',
     `- 角色脱节：始终以${profile.name}的专业视角组织内容，避免泛泛而谈。`,
+    ...(deep && respForScene[0] && !blueprintAware
+      ? [`- 职责遗漏：对照「${respForScene[0]}」等岗位关键动作，确认本步骤产出未偏离。`]
+      : []),
+    ...(blueprintAware && respForScene[0]
+      ? [`- 步骤偏离：每步完成后对照「${blueprint.suffix}」目标与岗位关键动作核对一次。`]
+      : []),
     '',
     '## 质量标准与验收',
     '',
@@ -359,8 +450,15 @@ function buildBody(profile, blueprint, skillId) {
     ...securitySection,
     '## 示例（输入 → 输出骨架）',
     '',
-    `- 输入：用户提出一个与「${profile.name}」相关的具体任务及其约束。`,
-    `- 输出：按上文「输出」清单给出 ${blueprint.outputs.join('、')}，并附待确认问题与下一步。`,
+    ...(concreteExample
+      ? [
+          `- 输入：${concreteExample.input}`,
+          `- 输出：${concreteExample.output}`,
+        ]
+      : [
+          `- 输入：用户提出一个与「${profile.name}」相关的具体任务及其约束。`,
+          `- 输出：按上文「输出」清单给出 ${blueprint.outputs.join('、')}，并附待确认问题与下一步。`,
+        ]),
     '',
     '## 注意事项',
     '',
@@ -372,14 +470,26 @@ function buildBody(profile, blueprint, skillId) {
   return lines.join('\n');
 }
 
-function buildSkillsForRole(roleDoc, existingSkills) {
-  const profile = buildProfile(roleDoc);
+function enrichProfile(profile, titleDuties) {
+  const merged = mergeRoleDuties(
+    profile.name,
+    profile.category,
+    profile.responsibilities,
+    titleDuties || titleDutiesFromTitle(profile.name, profile.category),
+  );
+  return { ...profile, enrichedDuties: merged };
+}
+
+function buildSkillsForRole(roleDoc, existingSkills, opts = {}) {
+  let profile = buildProfile(roleDoc);
+  if (opts.deep && opts.titleDuties) profile = enrichProfile(profile, opts.titleDuties);
+  else if (opts.usabilityV2 || opts.blueprintAware) profile = enrichProfile(profile, titleDutiesFromTitle(profile.name, profile.category));
   // 把现有 8 条技能按 suffix 对应到蓝图，沿用其 skillId 仅更新 contentMd/description
   const updates = [];
   for (const blueprint of blueprints) {
     const match = existingSkills.find((s) => s.name === `${profile.name}${blueprint.suffix}`);
     if (!match) continue;
-    const body = buildBody(profile, blueprint, match.skillId);
+    const body = buildBody(profile, blueprint, match.skillId, opts);
     const red = hasRedLine(body);
     updates.push({
       skillId: match.skillId,
@@ -398,17 +508,31 @@ async function main() {
   const limitIdx = process.argv.indexOf('--limit');
   const limit = limitIdx !== -1 ? Number(process.argv[limitIdx + 1]) : 0;
   const auditATier = process.argv.includes('--audit-a-tier');
+  const deep = process.argv.includes('--deep');
+  const usabilityV2 = process.argv.includes('--usability-v2');
+  const blueprintAware = process.argv.includes('--blueprint-aware');
+  const scanP0 = process.argv.includes('--scan-p0');
   const categoryFilter = (() => { const i = process.argv.indexOf('--category'); return i !== -1 ? process.argv[i + 1] : null; })();
+  const { dutiesFromTitle } = require('./role-duty-helpers');
 
   let auditRoleKeys = null;
-  if (auditATier) {
+  const auditBTier = process.argv.includes('--audit-b-tier');
+  if (scanP0) {
+    const p0Path = path.resolve(__dirname, '../../data/skills/p0-role-skills-audit.json');
+    const p0 = JSON.parse(fs.readFileSync(p0Path, 'utf8'));
+    auditRoleKeys = new Set((p0.P0角色清单 || []).map((r) => `${r.name}|||${r.category}`));
+    console.log(`仅处理 P0 角色: ${auditRoleKeys.size}`);
+  }
+
+  if (auditATier || auditBTier) {
     const audit = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../data/skills/role-skill-mismatch-audit.json'), 'utf8'));
     auditRoleKeys = new Set();
-    for (const [cat, info] of Object.entries(audit['A级高危错配_按品类'] || {})) {
+    const section = auditATier ? 'A级高危错配_按品类' : 'B级同域泛化_按品类';
+    for (const [cat, info] of Object.entries(audit[section] || {})) {
       if (categoryFilter && cat !== categoryFilter) continue;
       for (const name of info.角色) auditRoleKeys.add(`${name}|||${cat}`);
     }
-    console.log(`仅处理 A 级审计角色: ${auditRoleKeys.size}`);
+    console.log(`仅处理 ${auditATier ? 'A' : 'B'} 级审计角色: ${auditRoleKeys.size}`);
   }
 
   const scanRemaining = process.argv.includes('--scan-remaining');
@@ -462,6 +586,10 @@ async function main() {
 
   roleList = [...byRole.keys()];
   if (auditRoleKeys) roleList = roleList.filter((k) => auditRoleKeys.has(k));
+  if (categoryFilter) {
+    roleList = roleList.filter((k) => byRole.get(k).category === categoryFilter);
+    console.log(`品类过滤: ${categoryFilter} → ${roleList.length} 组`);
+  }
   if (limit) roleList = roleList.slice(0, limit);
   console.log(`涉及角色分组数(name+category): ${byRole.size}，本次处理: ${roleList.length}`);
 
@@ -486,7 +614,7 @@ async function main() {
     for (const pk of picks) {
       const existing = byRole.get(pk.key).skills;
       const before = existing[0];
-      const { profile, updates } = buildSkillsForRole(pk.roleDoc, existing);
+      const { profile, updates } = buildSkillsForRole(pk.roleDoc, existing, { deep });
       const after = updates[0];
       console.log('\n' + '='.repeat(70));
       console.log(`角色: ${pk.roleDoc.name} | 品类: ${pk.roleDoc.category} | 安全角色: ${pk.sec}`);
@@ -520,12 +648,23 @@ async function main() {
     const roleDoc = await findRoleDoc(roleName, category);
     if (!roleDoc) { noRoleDoc++; continue; }
     const existing = byRole.get(key).skills;
-    const { profile, updates } = buildSkillsForRole(roleDoc, existing);
+    const titleDuties = (deep || usabilityV2) ? dutiesFromTitle(roleName, category || roleDoc.category) : null;
+    const polishOpts = {
+      deep: deep || usabilityV2 || blueprintAware,
+      usabilityV2,
+      blueprintAware,
+      titleDuties,
+    };
+    const { profile, updates } = buildSkillsForRole(roleDoc, existing, polishOpts);
     if (!profile.responsibilities.length) noResp++;
     if (!profile.relevant) safeFallback++;
+    const docTags = ['岗位技能', roleName, 'totalclaw-agent', category || roleDoc.category].filter(Boolean);
     for (const u of updates) {
       if (u.redLines.length) redFlags++;
       if (apply) {
+        const polishedBy = auditATier ? 'polish-role-skills-a-tier'
+          : (blueprintAware ? 'polish-role-skills-blueprint'
+            : (usabilityV2 ? 'polish-role-skills-v2' : (deep ? 'polish-role-skills-deep' : 'polish-role-skills')));
         ops.push({
           updateOne: {
             filter: { _id: u._id },
@@ -534,8 +673,9 @@ async function main() {
                 contentMd: u.contentMd,
                 description: u.description,
                 descriptionZh: u.description,
-                version: '1.2.0',
-                'securityAudit.programmatic.polishedBy': auditATier ? 'polish-role-skills-a-tier' : 'polish-role-skills',
+                tags: docTags,
+                version: blueprintAware ? '1.5.2' : (usabilityV2 ? '1.4.0' : (deep ? '1.3.0' : '1.2.0')),
+                'securityAudit.programmatic.polishedBy': polishedBy,
                 'securityAudit.programmatic.polishedAt': new Date().toISOString(),
                 lastUpdated: new Date().toISOString(),
               },
@@ -560,4 +700,7 @@ if (require.main === module) {
   });
 }
 
-module.exports = { buildProfile, extractResponsibilities, buildBody, isSecurityRole, hasRedLine, buildSkillsForRole, isProfileRelevant };
+module.exports = {
+  buildProfile, extractResponsibilities, buildBody, isSecurityRole, hasRedLine,
+  buildSkillsForRole, isProfileRelevant, coreToken, hasTitleAnchoredDuties, enrichProfile,
+};

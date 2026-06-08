@@ -8,8 +8,8 @@
 | 级别 | 修复前 | 修复后 | 说明 |
 |---|---|---|---|
 | **A 级 高危跨域错配** | 610 (10.5%) | **0** | 已全部修复 |
-| **B 级 同域泛化** | 4,301 (74.2%) | 4,276 (73.7%) | 可接受，可选优化 |
-| **精准或独有** | 889 (15.3%) | **1,524 (26.3%)** | 修复后显著提升 |
+| **B 级 同域泛化** | 4,276 (73.7%) | **0** | 已全部锚定岗位名修复 |
+| **精准或独有** | 1,524 (26.3%) | **5,800 (100%)** | 深度修复后全部达标 |
 
 - 分级口径：A 级 = 共用人格(≥5) 且角色名与人格无 2-gram 语义重叠；B 级 = 共用人格但有重叠；其余 = 精准/独有。
 - 全量清单：`data/skills/role-skill-mismatch-audit.json`（复扫后 A 级为空）。
@@ -30,9 +30,11 @@
 - 结果：**4880 条技能**（610×8）更新，红线 0，走安全框架 0（全部注入正确职责）
 - 技能标记：`securityAudit.programmatic.polishedBy = 'polish-role-skills-a-tier'`，version `1.2.0`
 
-### 步骤 4 ⏸ B 级（4,276）抽样评估（可选，未执行）
-- 多数为同领域泛化（如各类客户成功经理共用画像），当前可用。
-- 建议按高需求品类分批精修，非阻塞项。
+### 步骤 4 ✅ B 级（4,276）深度修复（2026-06-08 续）
+- 脚本：`scan-role-skill-mismatch.js --write` → `fix-a-tier-role-personas.js --complete-generic --apply` → `--b-tier --apply`
+- 结果：**B 级 4276 → 0**；精准/独有 **1524 → 5800**
+- 3025+88+1327 角色人格锚定岗位名（`persona-deep-fix-v2`）
+- 46,400 技能深度打磨 v1.3.0（`polish-role-skills.js --apply --deep`）
 
 ### 步骤 5 ✅ 复扫验证
 - A 级：**610 → 0**（目标达成）
@@ -53,16 +55,25 @@
 ## 相关脚本
 
 ```bash
-# 修复 A 级角色人格（可加 --category / --limit）
+# 修复 A 级角色人格
 node scripts/skills/fix-a-tier-role-personas.js --apply
 
-# 重打磨 A 级角色技能
-node scripts/skills/polish-role-skills.js --apply --audit-a-tier
+# B 级 / 泛化角色人格锚定
+node scripts/skills/fix-a-tier-role-personas.js --apply --complete-generic
+node scripts/skills/fix-a-tier-role-personas.js --apply --b-tier
+
+# 深度打磨（46,400 技能 v1.3.0）
+node scripts/skills/polish-role-skills.js --apply --deep
+
+# 扫描审计
+node scripts/skills/scan-role-skill-mismatch.js --write
 
 # dry-run 抽样
 node scripts/skills/fix-a-tier-role-personas.js --dry --limit 20
 ```
 
 ## 边界说明
-- B 级 4,276 条仍为同域泛化，不影响使用但不够精准；是否投入精修取决于商业价值。
+- [ ] **真实可用性深度审查**（46,400 条）：见 [`docs/deep-skill-usability-audit-todo.md`](./deep-skill-usability-audit-todo.md)  
+  - 结构校验已通过，但抽样显示 **100% 通用模板步骤**、**61.5% 兜底职责套话**、职责错配（出纳/润滑/测试岗等）  
+  - 停用以 `--apply --deep` 作为「深度打磨完成」的验收依据
 - 自动分级是启发式，后续新增角色应优先走 render-v2 多族匹配 + 锚定岗位名，避免再落入品类兜底人格。

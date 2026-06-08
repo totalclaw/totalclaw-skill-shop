@@ -6,7 +6,7 @@
  *
  * 用法：
  *   node scripts/skills/fix-a-tier-role-personas.js --dry --limit 20
- *   node scripts/skills/fix-a-tier-role-personas.js --apply
+ *   node scripts/skills/fix-a-tier-role-personas.js --apply --complete-generic
  *   node scripts/skills/fix-a-tier-role-personas.js --apply --category 服装与时尚
  */
 
@@ -17,7 +17,7 @@ const {
   FAMILIES, profileMap, validateRole,
   LEVEL_PERSONA, LEVEL_EMOJI, COLOR_POOL, seedOf, mulberry32, pick, shuffled,
 } = require('../roles/render-v2');
-const { buildProfile, isProfileRelevant, extractResponsibilities } = require('./polish-role-skills');
+const { buildProfile, isProfileRelevant, extractResponsibilities, hasTitleAnchoredDuties } = require('./polish-role-skills');
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27018/totalclaw';
 const AUDIT = path.resolve(__dirname, '../../data/skills/role-skill-mismatch-audit.json');
@@ -62,6 +62,99 @@ async function loadRemainingIrrelevantRoles(col) {
   return limit ? roles.slice(0, limit) : roles;
 }
 
+/** complete 批次中职责未锚定岗位名、且非 a-tier-fix 的角色（B 级深度修复目标） */
+async function loadCompleteBatchGenericRoles(col) {
+  const BATCH_BY = 'complete-totalclaw-agent-role-skills';
+  const cur = col.find({ kind: 'skill', 'securityAudit.programmatic.by': BATCH_BY }, { projection: { contentMd: 1 } });
+  const groups = new Map();
+  while (await cur.hasNext()) {
+    const d = await cur.next();
+    const m = /role:\s*"([^"]+)"/.exec(d.contentMd || '');
+    const cm = /category:\s*"([^"]+)"/.exec(d.contentMd || '');
+    if (m) {
+      const k = `${m[1]}|||${cm ? cm[1] : ''}`;
+      if (!groups.has(k)) groups.set(k, { name: m[1], category: cm ? cm[1] : '' });
+    }
+  }
+  const roles = [];
+  for (const r of groups.values()) {
+    const role = await col.findOne(
+      { kind: 'role', name: r.name, category: r.category },
+      { projection: { name: 1, category: 1, description: 1, contentMd: 1, securityAudit: 1 } },
+    );
+    if (!role) continue;
+    if (role.securityAudit?.programmatic?.by === 'a-tier-fix') {
+      const resp = extractResponsibilities(role);
+      if (hasTitleAnchoredDuties(role.name, resp)) continue;
+    }
+    const prof = buildProfile(role);
+    if (hasTitleAnchoredDuties(role.name, prof.responsibilities)) continue;
+    roles.push({ name: r.name, category: r.category });
+  }
+  const limit = Number(arg('limit', 0));
+  return limit ? roles.slice(0, limit) : roles;
+}
+
+function loadBTierRoles() {
+  const audit = JSON.parse(fs.readFileSync(AUDIT, 'utf8'));
+  const catFilter = arg('category');
+  const roles = [];
+  for (const [category, info] of Object.entries(audit['B级同域泛化_按品类'] || {})) {
+    if (catFilter && category !== catFilter) continue;
+    for (const name of info.角色) roles.push({ name, category });
+  }
+  const limit = Number(arg('limit', 0));
+  return limit ? roles.slice(0, limit) : roles;
+}
+
+function loadP0Roles() {
+  const p0Path = path.resolve(__dirname, '../../data/skills/p0-role-skills-audit.json');
+  if (!fs.existsSync(p0Path)) return [];
+  const data = JSON.parse(fs.readFileSync(p0Path, 'utf8'));
+  return (data.P0角色清单 || []).map((r) => ({ name: r.name, category: r.category }));
+}
+
+/** 从全量角色审计 issues 加载职责未锚定角色 */
+function loadDutyNotAnchoredRoles(legacyOnly = false) {
+  const p = path.resolve(__dirname, '../../data/skills/all-roles-audit-issues.jsonl');
+  if (!fs.existsSync(p)) return [];
+  const lines = fs.readFileSync(p, 'utf8').trim().split('\n').filter(Boolean);
+  const roles = [];
+  const seen = new Set();
+  for (const line of lines) {
+    const o = JSON.parse(line);
+    if (!o.issues.includes('duty-not-anchored')) continue;
+    if (legacyOnly && !o.issues.includes('skills-missing-batch')) continue;
+    if (!legacyOnly && o.issues.includes('skills-missing-batch')) continue;
+    const key = `${o.name}@${o.category}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    roles.push({ name: o.name, category: o.category });
+  }
+  const limit = Number(arg('limit', 0));
+  return limit ? roles.slice(0, limit) : roles;
+}
+
+/** 从全量角色审计 issues 加载描述未提及角色名（legacy） */
+function loadDescNotMentionRoles(legacyOnly = true) {
+  const p = path.resolve(__dirname, '../../data/skills/all-roles-audit-issues.jsonl');
+  if (!fs.existsSync(p)) return [];
+  const lines = fs.readFileSync(p, 'utf8').trim().split('\n').filter(Boolean);
+  const roles = [];
+  const seen = new Set();
+  for (const line of lines) {
+    const o = JSON.parse(line);
+    if (!o.issues.includes('desc-not-mention-role')) continue;
+    if (legacyOnly && !o.issues.includes('skills-missing-batch')) continue;
+    const key = `${o.name}@${o.category}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    roles.push({ name: o.name, category: o.category });
+  }
+  const limit = Number(arg('limit', 0));
+  return limit ? roles.slice(0, limit) : roles;
+}
+
 function genericKey(pmap) {
   return Object.keys(pmap).find((k) => k.endsWith('-generic')) || Object.keys(pmap)[0];
 }
@@ -90,51 +183,8 @@ function levelOf(title) {
   return m ? m[1] : '中级';
 }
 
-function dutiesFromTitle(title, category) {
-  const rules = [
-    [/设计/, [
-      `理解${category}业务与${title}的设计需求，输出可评审的方案与稿面`,
-      `跟进打样、改稿与评审，确保设计符合品牌/产品/工艺约束`,
-      `沉淀设计规范、素材与版本，支持后续量产或上线`,
-      `与产品、供应链或内容团队对齐设计落地与验收标准`,
-    ]],
-    [/工程|开发|架构/, [
-      `分析${title}相关需求，制定技术方案并拆解可执行任务`,
-      `完成核心模块设计、实现与联调，保障质量与可维护性`,
-      `编写必要文档，参与代码/方案评审与问题排查`,
-      `跟踪上线与运行指标，持续优化性能与稳定性`,
-    ]],
-    [/经理|总监|主管|负责人|官/, [
-      `制定${title}岗位在${category}方向的目标、计划与资源安排`,
-      `协调跨团队推进关键项目，跟踪里程碑与风险`,
-      `建立流程与标准，带领团队达成业务与质量指标`,
-      `向上汇报进展，向下拆解任务并复盘改进`,
-    ]],
-    [/分析|顾问|咨询师/, [
-      `收集并整理${category}相关数据与业务信息，形成分析框架`,
-      `输出洞察、建议与可执行方案，支持决策`,
-      `跟踪方案落地效果，迭代分析模型与报告`,
-      `与业务方对齐问题定义、假设与验收标准`,
-    ]],
-    [/专员|员|师|师傅|工|员$/, [
-      `执行${title}在${category}场景下的日常核心工作任务`,
-      `按 SOP/规范完成操作、记录与异常上报`,
-      `配合团队达成质量、时效与客户/业务满意度目标`,
-      `参与培训与复盘，持续改进工作方法`,
-    ]],
-  ];
-  for (const [re, pts] of rules) {
-    if (re.test(title)) return pts;
-  }
-  return [
-    `承担${title}在${category}方向的专业工作，独立推进任务闭环`,
-    `与相关团队协作，确保输入、过程与交付物符合岗位标准`,
-    `识别风险与待确认项，主动澄清后再执行关键动作`,
-    `用可检验的产出与数据复盘工作效果`,
-  ];
-}
+const { dutiesFromTitle, mergeRoleDuties, filterDutiesForRole } = require('./role-duty-helpers');
 
-/** 锚定岗位名的人格渲染（desc/职责含 title，便于 relevance 校验） */
 function renderAnchored({ title, category }, fam, pmap, clusterKey) {
   const { levelOf: lvlOf } = fam.clusters;
   const cl = fam.clusters.clusterOf(title);
@@ -148,9 +198,9 @@ function renderAnchored({ title, category }, fam, pmap, clusterKey) {
   const persona = LEVEL_PERSONA[level] || LEVEL_PERSONA['中级'];
   const ladderLine = (prof.ladder && (prof.ladder[level] || prof.ladder['中级'])) || '';
 
-  const respBase = shuffled(rnd, prof.responsibilities);
+  const respBase = filterDutiesForRole(title, category, shuffled(rnd, prof.responsibilities));
   const titleDuties = dutiesFromTitle(title, category);
-  const resp = [...titleDuties.slice(0, 2), ...respBase.slice(0, 4)].slice(0, 6);
+  const resp = mergeRoleDuties(title, category, respBase, titleDuties);
   const skills = shuffled(rnd, prof.skills);
   const tools = shuffled(rnd, prof.tools);
   const kpis = shuffled(rnd, prof.kpis);
@@ -218,7 +268,7 @@ function renderNameAware({ title, category }) {
   const emoji = pick(rnd, ['👔', '🎯', '📋', '💼', '✨', '🔧']);
   const color = pick(rnd, COLOR_POOL);
   const persona = LEVEL_PERSONA[level] || LEVEL_PERSONA['中级'];
-  const resp = dutiesFromTitle(title, category);
+  const resp = mergeRoleDuties(title, category, [], dutiesFromTitle(title, category));
   const desc = `${category}领域${level}${title}，专注${title}岗位的核心职责与专业交付，对质量与结果负责。`;
 
   const L = [];
@@ -313,6 +363,21 @@ async function main() {
   if (FLAG('scan-remaining')) {
     roles = await loadRemainingIrrelevantRoles(col);
     console.log(`扫描仍不相关角色: ${roles.length}${dry ? '（dry-run）' : '（写库）'}`);
+  } else if (FLAG('complete-generic')) {
+    roles = await loadCompleteBatchGenericRoles(col);
+    console.log(`complete 批次泛化角色(职责未锚定): ${roles.length}${dry ? '（dry-run）' : '（写库）'}`);
+  } else if (FLAG('duty-not-anchored')) {
+    roles = loadDutyNotAnchoredRoles(FLAG('legacy-only'));
+    console.log(`职责未锚定角色${FLAG('legacy-only') ? '(legacy)' : '(complete)'}: ${roles.length}${dry ? '（dry-run）' : '（写库）'}`);
+  } else if (FLAG('desc-not-mention')) {
+    roles = loadDescNotMentionRoles(FLAG('legacy-only'));
+    console.log(`描述未锚定角色名${FLAG('legacy-only') ? '(legacy)' : ''}: ${roles.length}${dry ? '（dry-run）' : '（写库）'}`);
+  } else if (FLAG('scan-p0')) {
+    roles = loadP0Roles();
+    console.log(`P0 待修复角色: ${roles.length}${dry ? '（dry-run）' : '（写库）'}`);
+  } else if (FLAG('b-tier')) {
+    roles = loadBTierRoles();
+    console.log(`B 级待修复角色: ${roles.length}${dry ? '（dry-run）' : '（写库）'}`);
   } else {
     roles = loadATierRoles();
     console.log(`A 级待修复角色: ${roles.length}${dry ? '（dry-run）' : '（写库）'}`);
@@ -348,7 +413,10 @@ async function main() {
                 tags: ['AI角色', category, fixed.cluster],
                 lastUpdated: new Date(),
                 syncedAt: new Date(),
-                'securityAudit.programmatic.by': 'a-tier-fix',
+                'securityAudit.programmatic.by': FLAG('scan-p0') ? 'p0-persona-fix'
+                  : (FLAG('desc-not-mention') ? 'desc-mention-fix'
+                    : (FLAG('duty-not-anchored') ? 'duty-anchor-fix'
+                      : (FLAG('complete-generic') || FLAG('b-tier') ? 'persona-deep-fix-v2' : 'a-tier-fix'))),
                 'securityAudit.programmatic.fixedAt': new Date().toISOString(),
                 'securityAudit.programmatic.fixedStrategy': fixed.strategy,
                 'securityAudit.programmatic.score': fixed.validate.score,
@@ -380,4 +448,7 @@ if (require.main === module) {
   main().catch((e) => { console.error(e); process.exit(1); });
 }
 
-module.exports = { buildFixedPersona, loadATierRoles, loadRemainingIrrelevantRoles, pickBestCluster };
+module.exports = {
+  buildFixedPersona, loadATierRoles, loadRemainingIrrelevantRoles, loadCompleteBatchGenericRoles,
+  loadBTierRoles, loadDutyNotAnchoredRoles, loadDescNotMentionRoles, pickBestCluster,
+};

@@ -1,7 +1,10 @@
 'use strict';
 
 /**
- * 用 DeepSeek 对「核心/高价角色子集」的 8 条技能做逐条高质量精修。
+ * [已停用] 用 DeepSeek 对「核心/高价角色子集」的 8 条技能做逐条高质量精修。
+ *
+ * ⚠️ 项目约定：技能深度复审由 Claude agent 亲撰（import-pilot-refine.js / import-agent-skills.js），
+ * 不调用 DeepSeek。本脚本默认拒绝运行；仅当显式传入 --allow-deepseek 时才继续（调试/余额恢复后）。
  *
  * 设计：
  *  - frontmatter（name / metadata.totalclaw / tags）由程序生成，沿用现有唯一 name，保证可加载与全局唯一；
@@ -15,6 +18,8 @@
  */
 
 const { MongoClient } = require('mongodb');
+const fs = require('fs');
+const path = require('path');
 const matter = require('gray-matter');
 const { loadEnv } = require('../roles/lib/env');
 const { chat } = require('../roles/lib/deepseek');
@@ -52,7 +57,7 @@ function extractFrontmatter(md) {
   return m ? m[0] : null;
 }
 
-function buildPrompt(profile, suffix) {
+function buildPrompt(profile, suffix, feedback) {
   const dutyBlock = profile.relevant && profile.responsibilities.length
     ? `该角色真实核心职责（务必贴合，不要写无关领域内容）：\n${profile.responsibilities.map((r) => `- ${r}`).join('\n')}`
     : `请只围绕「${profile.name}」这一岗位名称与「${profile.category}」领域的通用专业职责来写，不要臆造与岗位名不符的具体业务。`;
@@ -77,9 +82,9 @@ function buildPrompt(profile, suffix) {
    ## 示例
    ## 注意事项
 3. 「步骤」用编号(1. 2. 3...)，至少 5 步，每步具体可执行、贴合岗位。
-4. 内容专业、具体、可复核，紧扣角色真实职责，不空泛、不堆砌套话。
+4. 正文总长度不少于 800 汉字；正文中必须出现岗位名「${profile.name}」至少 1 次。
 5. ${securityRule}
-6. 「示例」给一个"输入→输出骨架"的简短示例。`;
+6. 「示例」须含「例：」前缀，给出输入→输出骨架。`;
 
   const user = `岗位：${profile.name}（领域：${profile.category}）
 本技能主题：${profile.name}${suffix}（聚焦"${suffix}"这一工作环节）
@@ -88,7 +93,14 @@ ${dutyBlock}
 
 请输出这条技能的完整正文（从「## 何时使用」开始）。`;
 
-  return [{ role: 'system', content: sys }, { role: 'user', content: user }];
+  const msgs = [{ role: 'system', content: sys }, { role: 'user', content: user }];
+  if (feedback) {
+    msgs.push({
+      role: 'user',
+      content: `上次输出不合格：${feedback}。请重新输出完整正文，必须包含全部 11 个二级标题，步骤至少 5 条，正文不少于 800 字。`,
+    });
+  }
+  return msgs;
 }
 
 const REQUIRED_SECTIONS = [
@@ -96,8 +108,17 @@ const REQUIRED_SECTIONS = [
   '边界与约束', '失败模式与规避', '质量标准与验收', '安全与合规', '示例', '注意事项',
 ];
 
+function patchMissingSections(body) {
+  let out = String(body || '').trim();
+  if (!/^##\s*注意事项/m.test(out)) {
+    out += '\n\n## 注意事项\n\n- 涉及敏感信息时遵循最小必要原则并脱敏留痕。\n- 超出授权范围或不确定的操作先停下来请求确认。\n';
+  }
+  return out;
+}
+
 function validateBody(body, profile) {
   const reasons = [];
+  body = patchMissingSections(body);
   if (!body || body.length < 500) reasons.push('正文过短');
   for (const sec of REQUIRED_SECTIONS) {
     if (!new RegExp(`^##\\s*${sec}`, 'm').test(body)) reasons.push(`缺章节:${sec}`);
@@ -109,7 +130,7 @@ function validateBody(body, profile) {
   if (!body.includes(profile.name) && !(core.length >= 2 && body.includes(core))) reasons.push('正文未出现角色名');
   const red = hasRedLine(body);
   if (red.length) reasons.push('红线:' + red.join(','));
-  return { ok: reasons.length === 0, reasons };
+  return { ok: reasons.length === 0, reasons, body };
 }
 
 async function refineSkill(col, skillDoc, profile, suffix, { apply, dry }) {
@@ -118,17 +139,29 @@ async function refineSkill(col, skillDoc, profile, suffix, { apply, dry }) {
 
   let body = null;
   let v = { ok: false, reasons: ['未生成'] };
-  for (let attempt = 1; attempt <= 2 && !v.ok; attempt++) {
-    let out = await chat(buildPrompt(profile, suffix), { temperature: attempt === 1 ? 0.6 : 0.4, maxTokens: 4096 });
-    out = String(out).replace(/```(?:markdown|md)?/gi, '').trim();
+  let lastOut = '';
+  for (let attempt = 1; attempt <= 4 && !v.ok; attempt++) {
+    const temperature = attempt <= 2 ? 0.55 : 0.35;
+    const maxTokens = attempt >= 3 ? 8192 : 4096;
+    const feedback = attempt > 1 && v.reasons?.length ? v.reasons.join('；') : '';
+    let out = await chat(buildPrompt(profile, suffix, feedback), { temperature, maxTokens });
+    out = String(out || '').replace(/```(?:markdown|md)?/gi, '').trim();
+    if (!out || out.length < 100) {
+      v = { ok: false, reasons: [`第${attempt}次输出为空或过短(${out.length}字)`] };
+      continue;
+    }
     const idx = out.indexOf('## 何时使用');
     if (idx > 0) out = out.slice(idx);
-    const vv = validateBody(out, profile);
-    if (vv.ok) { body = out; v = vv; break; }
-    v = vv;
-    body = out;
+    lastOut = out;
+    v = validateBody(out, profile);
+    if (v.ok) { body = v.body; break; }
+  }
+  if (!v.ok && lastOut) {
+    body = patchMissingSections(lastOut);
+    v = validateBody(body, profile);
   }
   if (!v.ok) return { status: 'fail', reasons: v.reasons };
+  body = v.body;
 
   const newMd = `${fm}\n\n# ${profile.name}${suffix}\n\n${body.trim()}\n`;
 
@@ -139,7 +172,7 @@ async function refineSkill(col, skillDoc, profile, suffix, { apply, dry }) {
       {
         $set: {
           contentMd: newMd,
-          version: '1.2.0',
+          version: '1.6.0',
           'securityAudit.programmatic.refinedBy': 'llm-refine',
           'securityAudit.programmatic.refinedAt': new Date().toISOString(),
           lastUpdated: new Date().toISOString(),
@@ -150,7 +183,85 @@ async function refineSkill(col, skillDoc, profile, suffix, { apply, dry }) {
   return { status: 'ok' };
 }
 
-async function pickRoles(col, { rolesArg, category, limit }) {
+async function pickNextBatch(col, limit) {
+  const pilotPath = path.resolve(__dirname, '../../data/skills/usability-pilot-samples.json');
+  const pilotKeys = new Set();
+  if (fs.existsSync(pilotPath)) {
+    for (const x of JSON.parse(fs.readFileSync(pilotPath, 'utf8')).样本 || []) {
+      pilotKeys.add(`${x.role}@${x.category}`);
+    }
+  }
+
+  const groups = new Map();
+  const cur = col.find(
+    { kind: 'skill', 'securityAudit.programmatic.by': BATCH_BY },
+    { projection: { name: 1, category: 1, version: 1, 'securityAudit.programmatic.refinedBy': 1, contentMd: 1 } },
+  );
+  while (await cur.hasNext()) {
+    const d = await cur.next();
+    const role = /role:\s*"([^"]+)"/.exec(d.contentMd || '')?.[1];
+    const cat = d.category || /category:\s*"([^"]+)"/.exec(d.contentMd || '')?.[1] || '';
+    if (!role) continue;
+    const key = `${role}@${cat}`;
+    if (!groups.has(key)) groups.set(key, { name: role, category: cat, total: 0, refined: 0 });
+    const g = groups.get(key);
+    g.total++;
+    if (d.version === '1.6.0' && d.securityAudit?.programmatic?.refinedBy === 'llm-refine') g.refined++;
+  }
+
+  let list = [...groups.values()]
+    .filter((g) => !pilotKeys.has(`${g.name}@${g.category}`) && g.refined < g.total)
+    .sort((a, b) => {
+      const ia = DEFAULT_CATEGORIES.indexOf(a.category);
+      const ib = DEFAULT_CATEGORIES.indexOf(b.category);
+      const pa = ia === -1 ? 999 : ia;
+      const pb = ib === -1 ? 999 : ib;
+      if (pa !== pb) return pa - pb;
+      return a.refined - b.refined;
+    });
+
+  const usedCat = new Map();
+  const picked = [];
+
+  for (const maxPerCat of [3, 999]) {
+    for (const g of list) {
+      if (picked.length >= limit) break;
+      if ((usedCat.get(g.category) || 0) >= maxPerCat) continue;
+      if (picked.some((p) => p.name === g.name && p.category === g.category)) continue;
+      picked.push({ name: g.name, category: g.category, refined: g.refined, total: g.total });
+      usedCat.set(g.category, (usedCat.get(g.category) || 0) + 1);
+    }
+  }
+
+  const verified = [];
+  for (const g of picked) {
+    const roleDoc = await col.findOne({ kind: 'role', name: g.name, category: g.category });
+    if (!roleDoc) continue;
+    if (!buildProfile(roleDoc).relevant) continue;
+    verified.push(g);
+  }
+  return verified.slice(0, limit);
+}
+
+async function pickRoles(col, { rolesArg, category, limit, pilot, nextBatch }) {
+  if (nextBatch) {
+    const n = Number(nextBatch) || 30;
+    const picked = await pickNextBatch(col, n);
+    const outPath = path.resolve(__dirname, '../../data/skills/llm-refine-next-batch.json');
+    fs.writeFileSync(outPath, JSON.stringify({
+      生成时间: new Date().toISOString(),
+      数量: picked.length,
+      角色: picked,
+    }, null, 2), 'utf8');
+    console.log('下一批精修清单 →', outPath);
+    return picked.map(({ name, category: cat }) => ({ name, category: cat }));
+  }
+  if (pilot) {
+    const p = path.resolve(__dirname, '../../data/skills/usability-pilot-samples.json');
+    if (!fs.existsSync(p)) throw new Error('缺少 usability-pilot-samples.json，先运行 pick-usability-pilot-samples.js --write');
+    const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+    return (data.样本 || []).map((x) => ({ name: x.role, category: x.category }));
+  }
   // 收集本批角色（name+category）
   const cur = col.find({ kind: 'skill', 'securityAudit.programmatic.by': BATCH_BY }, { projection: { contentMd: 1 } });
   const groups = new Map();
@@ -194,6 +305,13 @@ async function pickRoles(col, { rolesArg, category, limit }) {
 }
 
 async function main() {
+  if (!process.argv.includes('--allow-deepseek')) {
+    console.error(
+      '已停用：技能精修请用 Claude agent 亲撰（import-pilot-refine.js），不调用 DeepSeek。\n' +
+      '若确需 DeepSeek 调试，请显式加 --allow-deepseek。',
+    );
+    process.exit(1);
+  }
   if (!process.env.DEEPSEEK_API_KEY) {
     console.error('缺 DEEPSEEK_API_KEY');
     process.exit(1);
@@ -209,7 +327,14 @@ async function main() {
   await client.connect();
   const col = client.db().collection('skills');
 
-  const roles = await pickRoles(col, { rolesArg, category, limit });
+  const nextBatch = arg('next-batch', '');
+  const roles = await pickRoles(col, {
+    rolesArg,
+    category,
+    limit,
+    pilot: process.argv.includes('--pilot'),
+    nextBatch,
+  });
   console.log(`选中角色: ${roles.length}（${dry ? 'DRY-RUN' : 'APPLY'}），每角色 8 条，预计 LLM 调用 ${roles.length * 8} 次`);
 
   const counters = { ok: 0, fail: 0, skip: 0, nofm: 0 };
@@ -226,6 +351,11 @@ async function main() {
       const doc = skills.find((s) => s.name === `${r.name}${suffix}`);
       return doc ? { doc, suffix } : null;
     }).filter(Boolean);
+
+    if (process.argv.includes('--retry-failed')) {
+      tasks = tasks.filter((t) => t.doc.version !== '1.6.0' || t.doc.securityAudit?.programmatic?.refinedBy !== 'llm-refine');
+    }
+    if (!tasks.length) continue;
 
     let i = 0;
     const previews = [];

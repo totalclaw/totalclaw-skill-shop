@@ -75,10 +75,13 @@ async function main() {
             contentMd: newMd,
             description: sk.desc || doc.description,
             descriptionZh: sk.desc || doc.descriptionZh,
-            version: '1.2.0',
+            version: '1.6.1',
             'securityAudit.programmatic.refinedBy': 'claude-author',
             'securityAudit.programmatic.refinedAt': new Date().toISOString(),
             lastUpdated: new Date().toISOString(),
+          },
+          $unset: {
+            'securityAudit.programmatic.llmRefineSource': '',
           },
         });
       }
