@@ -1,0 +1,13 @@
+---
+description: Prevent incorrect OpenClaw labeling in this skill market project
+alwaysApply: true
+---
+
+# Source Labeling
+
+- Treat the current skill market as a TotalClaw system. Do not introduce OpenClaw branding, source labels, tags, directories, generated scripts, or user-facing wording for new work unless the user explicitly requests it again.
+- Do not label generated skills with `source: 'openclaw'`, `tags: ['openclaw']`, or OpenClaw-compatible naming. This is incorrect for the current system.
+- All self-developed TotalClaw skills are TotalClaw-agent skills. Use `source: 'totalclaw'` and include `tags: ['totalclaw-agent']`; role skills should also include `岗位技能` and the role name.
+- Do not treat the `totalclaw-agent` tag as a narrow generated-batch subset. Its count should match all `source: 'totalclaw'` skills.
+- For generated role skills, prefer the existing TotalClaw role-skill path: `source: 'totalclaw'`, `kind: 'skill'`, with `ownership: 'totalclaw-proprietary'` when using `scripts/skills/import-agent-skills.js`.
+- If legacy data contains the wrong source label, repair the exact affected records rather than adding another source path.
