@@ -4,19 +4,17 @@ const path = require('path');
 const { scanLocalDir } = require('./local-scanner');
 
 /**
- * OpenClaw 社区。默认扫描仓库内两类 skill 目录：
+ * OpenClaw 社区镜像。扫描外部 openclaw 仓库目录（若存在）：
  *   - ../openclaw/skills/<slug>/SKILL.md（核心，扁平/偶嵌套）
  *   - ../openclaw/extensions/**\/SKILL.md（扩展，含 extensions/feishu/skills/* 等嵌套）
- *   - ./openclaw-skills/<category>/<slug>/SKILL.md（本市场内置 OpenClaw 兼容技能）
  * 另可叠加镜像源（opts.extraRoots）。注：.agents 为 agent 配置、node_modules 为依赖，均不计入。
+ * weilai 安全角色技能已入库（totalclaw:roleskill~*），不再维护仓库内 openclaw-skills/ 目录。
  */
 function fetch(opts = {}) {
   const repoRoot = opts.repoRoot || path.resolve(__dirname, '../../../openclaw');
-  const localRoot = path.resolve(__dirname, '../../openclaw-skills');
   const roots = [
     opts.rootDir || path.join(repoRoot, 'skills'),
     path.join(repoRoot, 'extensions'),
-    localRoot,
     ...(opts.extraRoots || []),
   ];
   const all = [];
