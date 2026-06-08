@@ -703,4 +703,5 @@ if (require.main === module) {
 module.exports = {
   buildProfile, extractResponsibilities, buildBody, isSecurityRole, hasRedLine,
   buildSkillsForRole, isProfileRelevant, coreToken, hasTitleAnchoredDuties, enrichProfile,
+  blueprints, slugify, hash36, shortHash, BATCH_BY,
 };
