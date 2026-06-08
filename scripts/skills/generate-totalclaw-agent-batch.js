@@ -185,7 +185,7 @@ function buildBody(role, blueprint) {
     '- 涉及付费闭源内容时，只在授权环境中使用，不把正文转发给未授权运行时。',
     '- 输出必须保留可复查依据、待确认问题和下一步行动，便于用户继续推进。',
     '',
-  ].join('\\n');
+  ].join('\n');
 }
 
 function buildSkills(role) {
