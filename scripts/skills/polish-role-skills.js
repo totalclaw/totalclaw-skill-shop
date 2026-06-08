@@ -53,7 +53,9 @@ function isSecurityRole(role) {
 }
 
 // ---- 攻击性红线词（出现即判为不合规，需人工复核）----
-const RED_LINES = ['编写漏洞利用', '绕过授权', '提权脚本', '免杀', '木马', '勒索', '攻破', '入侵他人', '窃取', '非法获取'];
+const RED_LINES = ['编写漏洞利用', '绕过授权', '提权脚本', '免杀', '木马', '攻破', '入侵他人', '窃取', '非法获取'];
+// 「勒索」仅拦截攻击性语境；防御岗角色名/正文中的「勒索软件/反勒索」允许
+const RED_LINE_RANSOM = /(?<![反防检测分析事件威胁应对处置响应])勒索(?!软件|ware|病毒|木马|攻击事件|事件分析|防护|防御|检测|情报|样本)/;
 function hasRedLine(text) {
   // 命中红线词，但忽略否定/防御/风险描述语境（前 20 字内出现 不/禁/严/勿/拒/防/避/泄/护/范/检/识/对抗）
   const hits = [];
@@ -66,6 +68,7 @@ function hasRedLine(text) {
       from = idx + w.length;
     }
   }
+  if (RED_LINE_RANSOM.test(text)) hits.push('勒索');
   return [...new Set(hits)];
 }
 
