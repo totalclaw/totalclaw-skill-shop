@@ -7,6 +7,9 @@ api/node_modules/
 scripts/sync/.sync-progress.json
 data/
 
+# seed 数据分片（体积过大，不入库；本地 mongoexport 生成，见 seed/README.md）
+seed/skills/
+
 # SSL 证书与私钥（绝不入库）
 certs/*
 !certs/README.md
