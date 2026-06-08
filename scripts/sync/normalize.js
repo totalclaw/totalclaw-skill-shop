@@ -44,7 +44,6 @@ function normalize(raw) {
   const hm = mdMeta.hermes || {};
 
   const tags = dedupe([
-    ...(toArray(oc.tags)),
     ...(toArray(hm.tags)),
     ...(toArray(fm.tags)),
     ...(toArray(mdMeta.tags)),
@@ -66,11 +65,12 @@ function normalize(raw) {
     license: clean(fm.license),
     homepage: clean(fm.homepage),
     repository: clean(fm.repository || meta?.latest?.commit),
-    category: clean(oc.category) || raw.category || clean(mdMeta.category || mdMeta.categories) || 'other',
+    category: raw.category || clean(mdMeta.categories) || 'other',
     tags,
     platforms: toArray(fm.platforms),
     keywords: dedupe(toArray(fm.keywords)),
     source: raw.source,
+    kind: 'skill',
     sourceUrl: raw.sourceUrl,
     installCommand: clean(fm.installCommand),
     contentMd: body.trim(),

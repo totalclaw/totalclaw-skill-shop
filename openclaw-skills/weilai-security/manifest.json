@@ -1,0 +1,1057 @@
+{
+  "sourceFile": "/Users/mac02/Desktop/work/new-work/ceshi/shop/weilai/被拦截角色-全量.json",
+  "total": 150,
+  "generatedAt": "2026-06-08T02:07:43.502Z",
+  "skills": [
+    {
+      "slug": "role-19ad6xd",
+      "role": "高级渗透测试工程师",
+      "roleSlug": "role-19ad6xd",
+      "category": "安全与风控",
+      "safetyMode": "governance-only"
+    },
+    {
+      "slug": "role-gld20w",
+      "role": "红队专家",
+      "roleSlug": "role-gld20w",
+      "category": "安全与风控",
+      "safetyMode": "governance-only"
+    },
+    {
+      "slug": "role-15k3k64",
+      "role": "蓝队分析师",
+      "roleSlug": "role-15k3k64",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-puarha",
+      "role": "威胁情报分析师",
+      "roleSlug": "role-puarha",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-wsron8",
+      "role": "高级事件响应专家",
+      "roleSlug": "role-wsron8",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-5vrzvb",
+      "role": "逆向工程师",
+      "roleSlug": "role-5vrzvb",
+      "category": "安全与风控",
+      "safetyMode": "governance-only"
+    },
+    {
+      "slug": "role-mbhaav",
+      "role": "漏洞研究员",
+      "roleSlug": "role-mbhaav",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-a8zr9q",
+      "role": "漏洞管理工程师",
+      "roleSlug": "role-a8zr9q",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-xo8t47",
+      "role": "合规安全工程师",
+      "roleSlug": "role-xo8t47",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1imt77t",
+      "role": "数据隐私官",
+      "roleSlug": "role-1imt77t",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1jnkqv8",
+      "role": "信息安全经理",
+      "roleSlug": "role-1jnkqv8",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1jnfk6b",
+      "role": "信息安全总监",
+      "roleSlug": "role-1jnfk6b",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1h4muhw",
+      "role": "高级云安全专家",
+      "roleSlug": "role-1h4muhw",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1kr0ud9",
+      "role": "物联网安全工程师",
+      "roleSlug": "role-1kr0ud9",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-e10add",
+      "role": "工控安全工程师",
+      "roleSlug": "role-e10add",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1fie970",
+      "role": "汽车信息安全工程师",
+      "roleSlug": "role-1fie970",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-duxc76",
+      "role": "区块链安全工程师",
+      "roleSlug": "role-duxc76",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-mmmhha",
+      "role": "内审安全专家",
+      "roleSlug": "role-mmmhha",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1mp4yip",
+      "role": "第三方安全评估师",
+      "roleSlug": "role-1mp4yip",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1bqtsrs",
+      "role": "业务连续性经理",
+      "roleSlug": "role-1bqtsrs",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1otwuks",
+      "role": "灾��恢复专家",
+      "roleSlug": "role-1otwuks",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-mhv97f",
+      "role": "入侵检测/防御系统工程师",
+      "roleSlug": "role-mhv97f",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-ygd8i6",
+      "role": "反垃圾邮件分析师",
+      "roleSlug": "role-ygd8i6",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-aszru1",
+      "role": "加密专家",
+      "roleSlug": "role-aszru1",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-u1dqn2",
+      "role": "密钥管理工程师",
+      "roleSlug": "role-u1dqn2",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1atdk8u",
+      "role": "安全运营自动化工程师",
+      "roleSlug": "role-1atdk8u",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-jyfvpx",
+      "role": "数字取证专家",
+      "roleSlug": "role-jyfvpx",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-uoce8f",
+      "role": "计算机取证分析师",
+      "roleSlug": "role-uoce8f",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-l7pi94",
+      "role": "网络取证分析师",
+      "roleSlug": "role-l7pi94",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-4wwnog",
+      "role": "内存取证分析师",
+      "roleSlug": "role-4wwnog",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-dfg3zd",
+      "role": "电子取证专家",
+      "roleSlug": "role-dfg3zd",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-13h94t2",
+      "role": "法证会计专家",
+      "roleSlug": "role-13h94t2",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1q7cr98",
+      "role": "合规审计员",
+      "roleSlug": "role-1q7cr98",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "soc",
+      "role": "SOC分析师",
+      "roleSlug": "soc",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "noc",
+      "role": "NOC安全分析师",
+      "roleSlug": "noc",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1equjyg",
+      "role": "安全控制室分析师",
+      "roleSlug": "role-1equjyg",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-14ocvbr",
+      "role": "安全情报研究员",
+      "roleSlug": "role-14ocvbr",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-17fp88e",
+      "role": "开源情报分析师",
+      "roleSlug": "role-17fp88e",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1u4zsga",
+      "role": "暗网监测分析师",
+      "roleSlug": "role-1u4zsga",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-2yo9yk",
+      "role": "品牌保护分析师",
+      "roleSlug": "role-2yo9yk",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "ccpa",
+      "role": "CCPA合规专家",
+      "roleSlug": "ccpa",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1p8d9ur",
+      "role": "电子取证技术员",
+      "roleSlug": "role-1p8d9ur",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-10927qx",
+      "role": "安全运维中心主任",
+      "roleSlug": "role-10927qx",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1jtgjah",
+      "role": "安全监控分析师",
+      "roleSlug": "role-1jtgjah",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1vw460z",
+      "role": "安全告警分析师",
+      "roleSlug": "role-1vw460z",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-121dc0c",
+      "role": "安全事件调查员",
+      "roleSlug": "role-121dc0c",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1s86dqf",
+      "role": "恶意代码分析师",
+      "roleSlug": "role-1s86dqf",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-c829fm",
+      "role": "漏洞赏金管理员",
+      "roleSlug": "role-c829fm",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1rwt00i",
+      "role": "安全社区经理",
+      "roleSlug": "role-1rwt00i",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-glpmm5",
+      "role": "红队队长",
+      "roleSlug": "role-glpmm5",
+      "category": "安全与风控",
+      "safetyMode": "governance-only"
+    },
+    {
+      "slug": "role-he02oy",
+      "role": "蓝队队长",
+      "roleSlug": "role-he02oy",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-bh9shc",
+      "role": "紫队协调员",
+      "roleSlug": "role-bh9shc",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1jyihvc",
+      "role": "安全产品开发工程师",
+      "roleSlug": "role-1jyihvc",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-iabobu",
+      "role": "云安全架构师",
+      "roleSlug": "role-iabobu",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1dy5jxw",
+      "role": "容器安全工程师",
+      "roleSlug": "role-1dy5jxw",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1ynpl02",
+      "role": "云原生安全工程师",
+      "roleSlug": "role-1ynpl02",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-127ao3x",
+      "role": "多云安全经理",
+      "roleSlug": "role-127ao3x",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1rvqgzo",
+      "role": "边缘安全工程师",
+      "roleSlug": "role-1rvqgzo",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "5g",
+      "role": "5G安全工程师",
+      "roleSlug": "5g",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-163feas",
+      "role": "无线安全工程师",
+      "roleSlug": "role-163feas",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1wf1zx",
+      "role": "卫星通信安全专家",
+      "roleSlug": "role-1wf1zx",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-yohzam",
+      "role": "量子安全密码学专家",
+      "roleSlug": "role-yohzam",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-gbtsyf",
+      "role": "量子密钥分发工程师",
+      "roleSlug": "role-gbtsyf",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1n5xv13",
+      "role": "攻击面管理分析师",
+      "roleSlug": "role-1n5xv13",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1lsbfeg",
+      "role": "外部攻击面管理专家",
+      "roleSlug": "role-1lsbfeg",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1ei4ntz",
+      "role": "勒索软件分析师",
+      "roleSlug": "role-1ei4ntz",
+      "category": "安全与风控",
+      "safetyMode": "governance-only"
+    },
+    {
+      "slug": "role-9svgn",
+      "role": "社会工程学专家",
+      "roleSlug": "role-9svgn",
+      "category": "安全与风控",
+      "safetyMode": "governance-only"
+    },
+    {
+      "slug": "role-11nswkp",
+      "role": "物理渗透测试师",
+      "roleSlug": "role-11nswkp",
+      "category": "安全与风控",
+      "safetyMode": "governance-only"
+    },
+    {
+      "slug": "role-1ashh8c",
+      "role": "红队物理安全专家",
+      "roleSlug": "role-1ashh8c",
+      "category": "安全与风控",
+      "safetyMode": "governance-only"
+    },
+    {
+      "slug": "role-7ulp2s",
+      "role": "安全摄像系统工程师",
+      "roleSlug": "role-7ulp2s",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-rqhidh",
+      "role": "门禁系统工程师",
+      "roleSlug": "role-rqhidh",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-11dhyfz",
+      "role": "警报系统工程师",
+      "roleSlug": "role-11dhyfz",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-567jsl",
+      "role": "安全运营中心设计工程师",
+      "roleSlug": "role-567jsl",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1dr5i4c",
+      "role": "安全控制室主管",
+      "roleSlug": "role-1dr5i4c",
+      "category": "安全与风控",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-5kixtb",
+      "role": "安全仪表板开发工程师",
+      "roleSlug": "role-5kixtb",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "sdk",
+      "role": "安全SDK开发工程师",
+      "roleSlug": "sdk",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1bvswy6",
+      "role": "安全插件开发工程师",
+      "roleSlug": "role-1bvswy6",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-12qkj67",
+      "role": "安全代理开发工程师",
+      "roleSlug": "role-12qkj67",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-frz081",
+      "role": "安全网关工程师",
+      "roleSlug": "role-frz081",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-182uy69",
+      "role": "安全防火墙工程师",
+      "roleSlug": "role-182uy69",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1m2hjuw",
+      "role": "安全入侵检测工程师",
+      "roleSlug": "role-1m2hjuw",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-kxy90k",
+      "role": "安全入侵防御工程师",
+      "roleSlug": "role-kxy90k",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1vff9j6",
+      "role": "安全防病毒工程师",
+      "roleSlug": "role-1vff9j6",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-iy1yy3",
+      "role": "安全沙箱工程师",
+      "roleSlug": "role-iy1yy3",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1g15gz3",
+      "role": "安全蜜罐工程师",
+      "roleSlug": "role-1g15gz3",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-17xchop",
+      "role": "安全陷阱工程师",
+      "roleSlug": "role-17xchop",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-hhcwx2",
+      "role": "安全欺骗工程师",
+      "roleSlug": "role-hhcwx2",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-14s28gs",
+      "role": "安全隔离工程师",
+      "roleSlug": "role-14s28gs",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1jfgnst",
+      "role": "安全加密工程师",
+      "roleSlug": "role-1jfgnst",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1mepw74",
+      "role": "安全解密工程师",
+      "roleSlug": "role-1mepw74",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-rgmt1h",
+      "role": "安全密钥管理师",
+      "roleSlug": "role-rgmt1h",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1s5509r",
+      "role": "安全证书管理师",
+      "roleSlug": "role-1s5509r",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1s3ds5c",
+      "role": "安全协议分析师",
+      "roleSlug": "role-1s3ds5c",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-li5uqg",
+      "role": "安全网络工程师",
+      "roleSlug": "role-li5uqg",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1ji3fcr",
+      "role": "安全路由器工程师",
+      "roleSlug": "role-1ji3fcr",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1mnykcl",
+      "role": "安全交换机工程师",
+      "roleSlug": "role-1mnykcl",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-gwd10r",
+      "role": "安全负载均衡工程师",
+      "roleSlug": "role-gwd10r",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "vpn",
+      "role": "安全VPN工程师",
+      "roleSlug": "vpn",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-t0mezp",
+      "role": "安全远程访问工程师",
+      "roleSlug": "role-t0mezp",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-ljigpc",
+      "role": "安全网络架构师",
+      "roleSlug": "role-ljigpc",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-hgq8kv",
+      "role": "安全数据中心工程师",
+      "roleSlug": "role-hgq8kv",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1mvdxyo",
+      "role": "安全虚拟化工程师",
+      "roleSlug": "role-1mvdxyo",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-jak3sk",
+      "role": "安全容器工程师",
+      "roleSlug": "role-jak3sk",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "kubernetes",
+      "role": "安全Kubernetes工程师",
+      "roleSlug": "kubernetes",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-4rw8bj",
+      "role": "安全微服务工程师",
+      "roleSlug": "role-4rw8bj",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "devops",
+      "role": "安全DevOps工程师",
+      "roleSlug": "devops",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-13rke2",
+      "role": "安全Z世代工程师",
+      "roleSlug": "role-13rke2",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1tu7c9c",
+      "role": "安全新兴技术工程师",
+      "roleSlug": "role-1tu7c9c",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-20b5ak",
+      "role": "安全量子计算工程师",
+      "roleSlug": "role-20b5ak",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1goscoe",
+      "role": "安全边缘计算工程师",
+      "roleSlug": "role-1goscoe",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-12dsejx",
+      "role": "安全雾计算工程师",
+      "roleSlug": "role-12dsejx",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "5g-2",
+      "role": "安全5G工程师",
+      "roleSlug": "5g",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-fhf7s8",
+      "role": "安全卫星通信工程师",
+      "roleSlug": "role-fhf7s8",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-nx0eu9",
+      "role": "安全无人机工程师",
+      "roleSlug": "role-nx0eu9",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-mpli5p",
+      "role": "安全自动驾驶工程师",
+      "roleSlug": "role-mpli5p",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-h20vq0",
+      "role": "安全远程医疗工程师",
+      "roleSlug": "role-h20vq0",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-jtf82q",
+      "role": "安全智慧城市工程师",
+      "roleSlug": "role-jtf82q",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "4-0",
+      "role": "安全工业4.0工程师",
+      "roleSlug": "4-0",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-kjd49o",
+      "role": "安全供应链工程师",
+      "roleSlug": "role-kjd49o",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-13unucr",
+      "role": "安全物流工程师",
+      "roleSlug": "role-13unucr",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-nwk4qv",
+      "role": "安全金融工程师",
+      "roleSlug": "role-nwk4qv",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1jbxmbe",
+      "role": "安全支付工程师",
+      "roleSlug": "role-1jbxmbe",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1s979uq",
+      "role": "安全数字货币工程师",
+      "roleSlug": "role-1s979uq",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-5zrq77",
+      "role": "安全区块链平台工程师",
+      "roleSlug": "role-5zrq77",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-20hkg8",
+      "role": "安全智能合约审计师",
+      "roleSlug": "role-20hkg8",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1mvj7i4",
+      "role": "安全去中心��应用工程师",
+      "roleSlug": "role-1mvj7i4",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-o1q36b",
+      "role": "安全社交工程测试师",
+      "roleSlug": "role-o1q36b",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-s6cphi",
+      "role": "物理安全工程师",
+      "roleSlug": "role-s6cphi",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-m3pkg2",
+      "role": "安全视频监控工程师",
+      "roleSlug": "role-m3pkg2",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-109p752",
+      "role": "安全门禁系统工程师",
+      "roleSlug": "role-109p752",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-nt6eu6",
+      "role": "安全报警系统工程师",
+      "roleSlug": "role-nt6eu6",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1mrnjlg",
+      "role": "安全生物识别工程师",
+      "roleSlug": "role-1mrnjlg",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-16bbg7v",
+      "role": "安全环境监测师",
+      "roleSlug": "role-16bbg7v",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1lme9zi",
+      "role": "安全应急响应经理",
+      "roleSlug": "role-1lme9zi",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-15f0fvc",
+      "role": "安全灾难恢复工程师",
+      "roleSlug": "role-15f0fvc",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1ka1hjd",
+      "role": "安全业务连续性经理",
+      "roleSlug": "role-1ka1hjd",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1h80pzt",
+      "role": "安全风险管理员",
+      "roleSlug": "role-1h80pzt",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1g2a9x4",
+      "role": "安全保险核保师",
+      "roleSlug": "role-1g2a9x4",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1ee1tyh",
+      "role": "安全理赔调查员",
+      "roleSlug": "role-1ee1tyh",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-7a5fqg",
+      "role": "安全法律合规经理",
+      "roleSlug": "role-7a5fqg",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1mus7ct",
+      "role": "安全监管合规师",
+      "roleSlug": "role-1mus7ct",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-8srd51",
+      "role": "安全国际合规师",
+      "roleSlug": "role-8srd51",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-763sl7",
+      "role": "安全政府关系经理",
+      "roleSlug": "role-763sl7",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1mvi1nv",
+      "role": "安全公关专员",
+      "roleSlug": "role-1mvi1nv",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-2zksov",
+      "role": "安全媒体关系经理",
+      "roleSlug": "role-2zksov",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1rwt00i-2",
+      "role": "安全社区经理",
+      "roleSlug": "role-1rwt00i",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1fywwzz",
+      "role": "安全开源情报分析师",
+      "roleSlug": "role-1fywwzz",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1m5o405",
+      "role": "安全暗网情报分析师",
+      "roleSlug": "role-1m5o405",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-1x0yet4",
+      "role": "安全社会网络分析师",
+      "roleSlug": "role-1x0yet4",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    },
+    {
+      "slug": "role-12rqvcc",
+      "role": "安全心理分析员",
+      "roleSlug": "role-12rqvcc",
+      "category": "网络安全攻防",
+      "safetyMode": "defensive"
+    }
+  ]
+}
