@@ -426,5 +426,5 @@ async function main() {
   if (previewWritten.length) console.log(`预览样例(${previewWritten.length}):\n  ` + previewWritten.join('\n  '));
 }
 
-module.exports = { render, profileMap, FAMILIES };
+module.exports = { render, profileMap, FAMILIES, validateRole, LEVEL_PERSONA, LEVEL_EMOJI, COLOR_POOL, seedOf, mulberry32, pick, shuffled };
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
