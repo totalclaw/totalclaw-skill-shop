@@ -1,6 +1,6 @@
 # 数据种子（随仓库提交，部署自动导入）
 
-`seed/skills/skills.ndjson.gz.part-*` = 144.7k 技能（含 27.4k AI 员工角色，其中 24.9k 为 profile-v2 招聘JD画像重建）的 gzip NDJSON，
+`seed/skills/skills.ndjson.gz.part-*` = 243,532 条 skills 集合文档（含 216,135 个 skill + 27,397 个 AI 员工角色）的 gzip NDJSON，
 按 90MB 分片（Gitee 单文件 <100MB）。
 
 - 部署时 `scripts/deploy-pm2.sh` 在「生产 skills 偏少」时自动 `scripts/import-seed.sh` 导入到
