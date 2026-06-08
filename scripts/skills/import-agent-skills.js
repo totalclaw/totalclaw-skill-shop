@@ -49,7 +49,10 @@ async function main() {
 
   let ok = 0, skip = 0, fail = 0, rolesDone = 0, rolesMissing = 0;
   for (const entry of data) {
-    const role = await skills.findOne({ kind: 'role', name: entry.role }, { projection: { _id: 1, slug: 1, name: 1, category: 1 } });
+    // 优先认领「尚未 done」的同名文档（DB 存在大量重名 role；否则会一直命中已 done 的那个、缺口不降）
+    const roleProj = { projection: { _id: 1, slug: 1, name: 1, category: 1 } };
+    let role = await skills.findOne({ kind: 'role', name: entry.role, skillsDone: { $ne: true } }, roleProj);
+    if (!role) role = await skills.findOne({ kind: 'role', name: entry.role }, roleProj);
     if (!role) { rolesMissing++; appendJsonl(FAILED, { role: entry.role, reason: 'role-not-found', at: Date.now() }); continue; }
     const cat = role.category || entry.category;
     for (const spec of (entry.skills || [])) {

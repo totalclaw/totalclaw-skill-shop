@@ -44,6 +44,7 @@ function normalize(raw) {
   const hm = mdMeta.hermes || {};
 
   const tags = dedupe([
+    ...(toArray(oc.tags)),
     ...(toArray(hm.tags)),
     ...(toArray(fm.tags)),
     ...(toArray(mdMeta.tags)),
@@ -56,8 +57,8 @@ function normalize(raw) {
   return {
     skillId,
     slug,
-    name: fm.name || meta.displayName || slug,
-    displayName: meta.displayName || fm.name || slug,
+    name: clean(fm.displayName) || meta.displayName || fm.name || slug,
+    displayName: clean(fm.displayName) || meta.displayName || fm.name || slug,
     description: clean(fm.description),
     descriptionZh: clean(fm.descriptionZh),
     version: String(fm.version || meta?.latest?.version || meta?.version || '').trim() || undefined,
@@ -65,7 +66,7 @@ function normalize(raw) {
     license: clean(fm.license),
     homepage: clean(fm.homepage),
     repository: clean(fm.repository || meta?.latest?.commit),
-    category: raw.category || clean(mdMeta.categories) || 'other',
+    category: clean(oc.category) || raw.category || clean(mdMeta.category || mdMeta.categories) || 'other',
     tags,
     platforms: toArray(fm.platforms),
     keywords: dedupe(toArray(fm.keywords)),
