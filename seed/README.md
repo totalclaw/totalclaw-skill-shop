@@ -1,30 +1,58 @@
-# 数据种子（不入 Git，本地生成）
+# 数据种子（CDN 分发，不入 Git）
 
-`seed/skills/skills.ndjson.gz.part-*` 为 skills 集合的 gzip NDJSON 分片（按 90MB 切分，单文件 <100MB）。
+skills 集合的 gzip NDJSON 分片，部署时从 CDN 下载，不随 Git 提交。
 
-**当前规模（2026-06-08）**：243,532 条（216,135 skill + 27,397 role），4 个分片（约 312MB 压缩）。
+**CDN 根路径**：`https://cdn2.taituai.com/totalclaw-skill-shop/seed`
 
-> 分片文件体积过大，已加入 `.gitignore`，**不随仓库提交**。部署服务器需在本机或 CI 生成后 scp 到服务器，或在服务器上从 MongoDB 导出。
+| 文件 | CDN URL |
+|---|---|
+| manifest | `https://cdn2.taituai.com/totalclaw-skill-shop/seed/manifest.json` |
+| 分片 | `https://cdn2.taituai.com/totalclaw-skill-shop/seed/skills/skills.ndjson.gz.part-*` |
 
-## 本地生成
+当前规模（2026-06-08）：243,532 条（216,135 skill + 27,397 role），4 个分片。
+
+## 本地生成（开发机）
 
 ```bash
-rm -f seed/skills/skills.ndjson.gz.part-*
-mongoexport --port 27018 --db totalclaw --collection skills --quiet \
-  | gzip | split -b 90m - seed/skills/skills.ndjson.gz.part-
+bash scripts/generate-seed.sh
 ```
 
-## 导入
+产出 `seed/skills/*.part-*` 与 `seed/manifest.json`（均在 `.gitignore`）。
 
-- 部署时 `scripts/deploy-pm2.sh` 在「生产 skills 偏少」且分片存在时自动 `scripts/import-seed.sh` 导入。
-- 手动导入：`bash scripts/import-seed.sh`
-- 全量重建：`SEED_FULL=1 bash scripts/import-seed.sh`
-- 跳过自动导入：`SKIP_SEED=1 npm run deploy`
+## 上传到 CDN
 
-## 部署服务器获取种子
+将以下文件上传到 CDN 对应路径（保持文件名不变）：
 
-1. 在开发机生成后上传：
-   ```bash
-   rsync -avz seed/skills/ user@server:/path/to/totalclaw-skill-shop/seed/skills/
-   ```
-2. 或在服务器上从已有 MongoDB 实例导出（同上 mongoexport 命令，改端口/库名）。
+```
+seed/manifest.json  →  https://cdn2.taituai.com/totalclaw-skill-shop/seed/manifest.json
+seed/skills/*       →  https://cdn2.taituai.com/totalclaw-skill-shop/seed/skills/
+```
+
+上传完成后可用 curl 验证：
+
+```bash
+curl -fsSL https://cdn2.taituai.com/totalclaw-skill-shop/seed/manifest.json | head
+```
+
+## 部署（服务器）
+
+`npm run deploy` 会自动：
+
+1. 从 CDN 下载最新 seed（`SEED_FORCE_DOWNLOAD=1`，默认每次部署拉取）
+2. 增量导入 MongoDB（`scripts/import-seed.sh`）
+
+手动步骤：
+
+```bash
+bash scripts/download-seed.sh          # 从 CDN 下载
+SEED_FULL=1 bash scripts/import-seed.sh  # 全量重建（慎用）
+```
+
+环境变量：
+
+| 变量 | 说明 |
+|---|---|
+| `SEED_CDN_BASE` | CDN 根路径，默认 `https://cdn2.taituai.com/totalclaw-skill-shop/seed` |
+| `SEED_FORCE_DOWNLOAD=1` | 强制重新下载（deploy 默认） |
+| `SKIP_SEED=1` | 跳过下载与导入 |
+| `SEED_FULL=1` | 导入前清空 skills 集合 |

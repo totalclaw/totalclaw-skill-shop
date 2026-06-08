@@ -6,7 +6,8 @@
 #   npm run deploy                # 部署 PM2 + 生成 skills.taituai.com 的 80+443 vhost
 #   SKIP_NGINX=1 npm run deploy   # 只部署 PM2，不动 nginx
 #   SKIP_API=1   npm run deploy   # 只起前台 SSR
-#   SKIP_SYNC=1  npm run deploy   # 跳过首次同步
+#   SKIP_SEED=1  npm run deploy   # 跳过种子下载与导入
+#   SEED_FORCE_DOWNLOAD=1        # 部署时强制从 CDN 重新拉 seed（deploy 默认开启）
 #
 # 关键 env：
 #   API_PORT=3091  WEB_PORT=3090
@@ -14,6 +15,7 @@
 #   PUBLIC_ORIGIN      对外访问根（默认 https://<NGINX_SERVER_NAME>）—— 决定页面里下载/安装命令显示的地址
 #   SSL_CERT / SSL_KEY 证书路径（默认宝塔 /www/server/panel/vhost/cert/<域名>/{fullchain,privkey}.pem）
 #   SHARED_MONGO_URI   与 web 共享的 mongo（默认 mongodb://127.0.0.1:27117/totalclaw?directConnection=true）
+#   SEED_CDN_BASE      seed CDN 根路径（默认 https://cdn2.taituai.com/totalclaw-skill-shop/seed）
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -212,11 +214,18 @@ configure_nginx() {
 }
 [ "${SKIP_NGINX:-0}" = "1" ] && log "跳过 nginx 配置" || configure_nginx
 
-# ---------- 7) 数据种子：增量同步（仅插入生产里没有的 skillId，不冲掉生产新增/已购等） ----------
-# 首次：生产空 → 全导入；再次部署：只补种子里的新增。全量重建用 SEED_FULL=1 npm run deploy。
-if [ "${SKIP_SEED:-0}" != "1" ] && ls seed/skills/skills.ndjson.gz.part-* >/dev/null 2>&1; then
-  log "增量导入种子 seed/skills（仅新增 skill；全量重建用 SEED_FULL=1）"
-  bash scripts/import-seed.sh || warn "种子导入失败，可手动：bash scripts/import-seed.sh"
+# ---------- 7) 数据种子：从 CDN 下载 → 增量导入 MongoDB ----------
+# 首次：生产空 → 全导入；再次部署：默认从 CDN 拉最新 seed，仅补新增 skillId。全量重建用 SEED_FULL=1。
+if [ "${SKIP_SEED:-0}" != "1" ]; then
+  log "从 CDN 下载 seed（${SEED_CDN_BASE:-https://cdn2.taituai.com/totalclaw-skill-shop/seed}）"
+  SEED_FORCE_DOWNLOAD="${SEED_FORCE_DOWNLOAD:-1}" bash scripts/download-seed.sh \
+    || warn "CDN seed 下载失败，可手动：bash scripts/download-seed.sh"
+  if ls seed/skills/skills.ndjson.gz.part-* >/dev/null 2>&1; then
+    log "增量导入 seed/skills（仅新增 skill；全量重建用 SEED_FULL=1）"
+    bash scripts/import-seed.sh || warn "种子导入失败，可手动：bash scripts/import-seed.sh"
+  else
+    warn "无 seed 分片可导入（CDN 未就绪或 SKIP_SEED_DOWNLOAD=1 且本地无文件）"
+  fi
 fi
 
 # ---------- 8) 首次同步：站点已上线后，后台跑（绝不阻塞部署） ----------

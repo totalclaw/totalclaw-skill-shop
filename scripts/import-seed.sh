@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 SEED_GLOB="seed/skills/skills.ndjson.gz.part-*"
 log(){ echo "==> $*"; }; die(){ echo "!! $*" >&2; exit 1; }
 
-ls $SEED_GLOB >/dev/null 2>&1 || die "没找到种子分片 $SEED_GLOB（确认已 git pull 到完整仓库）"
+ls $SEED_GLOB >/dev/null 2>&1 || die "没找到种子分片 $SEED_GLOB（先运行 bash scripts/download-seed.sh 从 CDN 下载）"
 command -v node >/dev/null 2>&1 || die "缺 node"
 
 log "合并分片 + 解压 + node 导入（mongodb 驱动，无需 mongoimport/docker）"
