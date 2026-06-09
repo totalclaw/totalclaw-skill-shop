@@ -1,7 +1,9 @@
 'use strict';
 
 /**
- * 将 openclaw 错误 source/tags 修复为 totalclaw。
+ * 将 openclaw 错误 source/tags 修复为 totalclaw（仅限误标为 openclaw 的自研记录）。
+ * ⚠️ source=openclaw 的第三方镜像请用 isolate-third-party-skills.js 下架，勿用本脚本改 source。
+ * 标签清理请用 fix-openclaw-tags.js。
  *
  *   node scripts/skills/fix-openclaw-source.js --dry
  *   node scripts/skills/fix-openclaw-source.js --apply

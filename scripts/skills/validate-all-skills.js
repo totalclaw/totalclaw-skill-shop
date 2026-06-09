@@ -37,6 +37,11 @@ const FULL_SECTIONS = [
 ];
 const GENERIC_STEP = '列出缺失信息，用最多 8 个问题';
 
+function hasLiteralBackslashN(md) {
+  const parts = String(md || '').split(/(```[\s\S]*?```)/g);
+  return parts.some((part, i) => i % 2 === 0 && /\\n/.test(part));
+}
+
 const arg = (k, d) => {
   const i = process.argv.indexOf(`--${k}`);
   return i !== -1 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : d;
@@ -48,13 +53,16 @@ function auditSkill(doc) {
   const body = extractBody(md) || md;
   const role = extractRoleFromMd(md) || (doc.tags || []).find((t) => t && !['岗位技能', 'totalclaw-agent', doc.category].includes(t) && t.length >= 2 && t.length <= 40) || '';
   const by = doc.securityAudit?.programmatic?.by || null;
+  const inactive = doc.listingType === 'inactive';
 
   if (!md.trim()) issues.push('missing-contentMd');
   if (hasCorruption(doc.name) || hasCorruption(md) || hasCorruption(doc.description)) issues.push('corrupt');
   if (md.length > 0 && md.length < 200) issues.push('too-short');
   if (!md.startsWith('---') && md.length > 0) issues.push('no-frontmatter');
-  if (/\\n/.test(md)) issues.push('literal-backslash-n');
-  if (doc.source === 'openclaw' || (doc.tags || []).includes('openclaw')) issues.push('wrong-source-openclaw');
+  if (hasLiteralBackslashN(md)) issues.push('literal-backslash-n');
+  if (doc.source === 'openclaw' || (doc.tags || []).includes('openclaw')) {
+    if (!(inactive && doc.source === 'openclaw')) issues.push('wrong-source-openclaw');
+  }
   if (!doc.skillId) issues.push('missing-skillId');
   if (!doc.name) issues.push('missing-name');
 
@@ -124,7 +132,8 @@ async function main() {
   const cur = col.find({ kind: 'skill' }, {
     projection: {
       skillId: 1, name: 1, category: 1, contentMd: 1, description: 1,
-      source: 1, tags: 1, version: 1, 'securityAudit.programmatic.by': 1,
+      source: 1, tags: 1, version: 1, listingType: 1,
+      'securityAudit.programmatic.by': 1,
     },
   });
 

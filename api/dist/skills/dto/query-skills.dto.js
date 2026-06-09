@@ -39,7 +39,7 @@ __decorate([
     __metadata("design:type", String)
 ], QuerySkillsDto.prototype, "categories", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: '来源', enum: ['github', 'tencent', 'openclaw', 'hermes', 'totalclaw'] }),
+    (0, swagger_1.ApiPropertyOptional)({ description: '来源（totalclaw-community = TotalClaw 社区免费技能）', enum: ['github', 'tencent', 'openclaw', 'hermes', 'totalclaw', 'clawskills', 'skilldb', 'totalclaw-community'] }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)

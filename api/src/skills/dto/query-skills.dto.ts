@@ -18,7 +18,7 @@ export class QuerySkillsDto {
   @IsString()
   categories?: string;
 
-  @ApiPropertyOptional({ description: '来源', enum: ['github', 'tencent', 'openclaw', 'hermes', 'totalclaw'] })
+  @ApiPropertyOptional({ description: '来源（totalclaw-community = TotalClaw 社区免费技能）', enum: ['github', 'tencent', 'openclaw', 'hermes', 'totalclaw', 'clawskills', 'skilldb', 'totalclaw-community'] })
   @IsOptional()
   @IsString()
   source?: string;

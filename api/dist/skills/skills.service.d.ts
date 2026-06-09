@@ -32,5 +32,20 @@ export declare class SkillsService implements OnModuleInit {
         listingType: string;
         closedSource: boolean;
     }>;
+    namesList(kind?: string, source?: string, listingType?: string): Promise<unknown>;
+    findByName(nameOrSlug: string): Promise<import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, Skill, {}, {}> & Skill & {
+        _id: import("mongoose").Types.ObjectId;
+    } & {
+        __v: number;
+    }> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }>>;
+    buildDownloadByNameOrId(nameOrId: string): Promise<{
+        filename: string;
+        displayName: string;
+        content: string;
+        listingType: string;
+        closedSource: boolean;
+    }>;
     private escapeRegex;
 }

@@ -4,6 +4,7 @@ const { escapeHtml } = require('./render');
 
 const SOURCE_LABEL = {
   totalclaw: 'TotalClaw',
+  'totalclaw-community': 'TotalClaw 社区',
   openclaw: 'OpenClaw',
   hermes: 'Hermes',
   github: 'GitHub',
@@ -13,7 +14,7 @@ const SOURCE_LABEL = {
 };
 
 // 前台来源筛选顺序（自研在前；镜像源/空源由首页按计数过滤展示）
-const SOURCE_ORDER = ['totalclaw', 'openclaw', 'hermes', 'github', 'clawskills', 'tencent'];
+const SOURCE_ORDER = ['totalclaw', 'totalclaw-community', 'openclaw', 'hermes', 'github', 'clawskills', 'skilldb', 'tencent'];
 
 // 英文分类（多来自聚合的开源 skill）→ 中文显示名。未命中则原样返回。
 const CATEGORY_ZH = {

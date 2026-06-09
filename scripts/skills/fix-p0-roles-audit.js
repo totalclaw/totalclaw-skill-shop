@@ -154,7 +154,15 @@ async function phaseDuplicates(col, apply, stats) {
   }
 
   stats.duplicateDeletes = deleteIds.length;
+  // 安全护栏：单次去重超过 200 条时拒绝执行，防止误删大量角色。
+  const MAX_SAFE_DELETES = 200;
   if (apply && deleteIds.length) {
+    if (deleteIds.length > MAX_SAFE_DELETES) {
+      throw new Error(
+        `去重安全护栏：检测到 ${deleteIds.length} 条待删角色，超过上限 ${MAX_SAFE_DELETES}。` +
+        `请人工确认后用 --force-dedup 参数强制执行，或检查角色数据是否正确。`
+      );
+    }
     await col.deleteMany({ _id: { $in: deleteIds.map((d) => d.id) } });
   }
   stats.duplicateSamples = deleteIds.slice(0, 5).map((d) => `${d.key} 删 ${String(d.id).slice(-6)} 留 ${String(d.keepId).slice(-6)}`);

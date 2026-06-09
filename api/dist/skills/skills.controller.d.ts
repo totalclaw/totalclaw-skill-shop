@@ -7,6 +7,15 @@ export declare class SkillsController {
     list(query: QuerySkillsDto): Promise<unknown>;
     categories(kind?: string, source?: string): Promise<unknown>;
     sourcesSummary(): Promise<unknown>;
+    namesList(kind?: string, source?: string, listingType?: string): Promise<unknown>;
+    findByName(name: string): Promise<import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, import("./schemas/skill.schema").Skill, {}, {}> & import("./schemas/skill.schema").Skill & {
+        _id: import("mongoose").Types.ObjectId;
+    } & {
+        __v: number;
+    }> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }>>;
+    fileByName(name: string, res: Response): Promise<void>;
     detail(skillId: string): Promise<import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, import("./schemas/skill.schema").Skill, {}, {}> & import("./schemas/skill.schema").Skill & {
         _id: import("mongoose").Types.ObjectId;
     } & {

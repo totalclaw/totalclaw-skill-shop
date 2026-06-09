@@ -38,10 +38,17 @@ let SkillsService = SkillsService_1 = class SkillsService {
     }
     async onModuleInit() {
         try {
-            const pending = await this.skillModel.countDocuments({ kind: null }).exec();
+            const skillFilter = { kind: null, skillId: { $not: /^role:/ } };
+            const pending = await this.skillModel.countDocuments(skillFilter).exec();
             if (pending > 0) {
-                const r = await this.skillModel.updateMany({ kind: null }, { $set: { kind: 'skill' } }).exec();
+                const r = await this.skillModel.updateMany(skillFilter, { $set: { kind: 'skill' } }).exec();
                 this.logger.log(`kind 补全：${r.modifiedCount} 个无 kind 文档 → 'skill'`);
+            }
+            const roleFilter = { skillId: /^role:/, kind: { $ne: 'role' } };
+            const roleCount = await this.skillModel.countDocuments(roleFilter).exec();
+            if (roleCount > 0) {
+                const r = await this.skillModel.updateMany(roleFilter, { $set: { kind: 'role' } }).exec();
+                this.logger.warn(`角色 kind 修正：${r.modifiedCount} 个 role:* 文档 kind 非 'role'，已修正`);
             }
             await this.skillModel.collection.createIndex({ kind: 1, syncedAt: -1, _id: -1 }, { name: 'kind_1_syncedAt_-1__id_-1', background: true });
         }
@@ -65,8 +72,13 @@ let SkillsService = SkillsService_1 = class SkillsService {
         else if (query.category) {
             filter.category = query.category;
         }
-        if (query.source)
+        if (query.source === 'totalclaw-community') {
+            filter.source = 'totalclaw';
+            filter.ownership = 'community';
+        }
+        else if (query.source) {
             filter.source = query.source;
+        }
         if (query.tag)
             filter.tags = query.tag;
         if (query.listingType)
@@ -125,8 +137,13 @@ let SkillsService = SkillsService_1 = class SkillsService {
             return c;
         const kindMatch = kind === 'role' ? 'role' : 'skill';
         const match = { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch };
-        if (source)
+        if (source === 'totalclaw-community') {
+            match.source = 'totalclaw';
+            match.ownership = 'community';
+        }
+        else if (source) {
             match.source = source;
+        }
         const r = await this.skillModel.aggregate([
             { $match: match },
             { $group: { _id: '$category', count: { $sum: 1 } } },
@@ -139,13 +156,26 @@ let SkillsService = SkillsService_1 = class SkillsService {
         const c = cacheGet('sources', 600_000);
         if (c)
             return c;
-        const r = await this.skillModel.aggregate([
-            { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
-            { $group: { _id: '$source', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
+        const [realSources, communityCount] = await Promise.all([
+            this.skillModel.aggregate([
+                { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
+                { $group: { _id: '$source', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+            ]),
+            this.skillModel.countDocuments({
+                reviewStatus: { $in: ['n/a', 'approved'] },
+                kind: 'skill',
+                source: 'totalclaw',
+                ownership: 'community',
+            }).exec(),
         ]);
-        cacheSet('sources', r);
-        return r;
+        const result = [...realSources];
+        if (communityCount > 0) {
+            const tcIdx = result.findIndex((r) => r._id === 'totalclaw');
+            result.splice(tcIdx >= 0 ? tcIdx + 1 : 0, 0, { _id: 'totalclaw-community', count: communityCount });
+        }
+        cacheSet('sources', result);
+        return result;
     }
     async incrementDownloads(skillId) {
         await this.skillModel.updateOne({ skillId }, { $inc: { 'stats.downloads': 1 } }).exec();
@@ -185,6 +215,66 @@ let SkillsService = SkillsService_1 = class SkillsService {
             listingType: doc.listingType,
             closedSource: !!doc.closedSource,
         };
+    }
+    async namesList(kind, source, listingType) {
+        const ck = `names:${kind ?? ''}:${source ?? ''}:${listingType ?? ''}`;
+        const cached = cacheGet(ck, 300_000);
+        if (cached)
+            return cached;
+        const filter = { reviewStatus: { $in: ['n/a', 'approved'] } };
+        filter.kind = kind === 'role' ? 'role' : 'skill';
+        if (source === 'totalclaw-community') {
+            filter.source = 'totalclaw';
+            filter.ownership = 'community';
+        }
+        else if (source)
+            filter.source = source;
+        if (listingType)
+            filter.listingType = listingType;
+        const items = await this.skillModel
+            .find(filter)
+            .select('skillId name slug displayName listingType source')
+            .sort({ 'stats.downloads': -1, _id: -1 })
+            .limit(50000)
+            .lean()
+            .exec();
+        const result = { total: items.length, items };
+        cacheSet(ck, result);
+        return result;
+    }
+    async findByName(nameOrSlug) {
+        const q = String(nameOrSlug || '').trim();
+        if (!q)
+            throw new common_1.NotFoundException('name required');
+        const re = new RegExp(`^${this.escapeRegex(q)}$`, 'i');
+        const doc = await this.skillModel
+            .findOne({
+            reviewStatus: { $in: ['n/a', 'approved'] },
+            $or: [{ name: re }, { slug: re }, { displayName: re }],
+        })
+            .lean()
+            .exec();
+        if (!doc) {
+            const prefix = new RegExp(`^${this.escapeRegex(q)}`, 'i');
+            const fallback = await this.skillModel
+                .findOne({
+                reviewStatus: { $in: ['n/a', 'approved'] },
+                $or: [{ name: prefix }, { slug: prefix }, { displayName: prefix }],
+            })
+                .lean()
+                .exec();
+            if (!fallback)
+                throw new common_1.NotFoundException('skill not found by name: ' + q);
+            return fallback;
+        }
+        return doc;
+    }
+    async buildDownloadByNameOrId(nameOrId) {
+        const byId = await this.skillModel.findOne({ skillId: nameOrId }).lean().exec();
+        if (byId)
+            return this.buildDownload(byId.skillId);
+        const byName = await this.findByName(nameOrId);
+        return this.buildDownload(byName.skillId);
     }
     escapeRegex(s) {
         return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

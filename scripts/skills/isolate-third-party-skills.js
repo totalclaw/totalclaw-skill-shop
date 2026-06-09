@@ -14,6 +14,8 @@ loadEnv();
 
 const MONGO_URL = process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://127.0.0.1:27018/totalclaw';
 const THIRD_PARTY = ['github', 'clawskills', 'skilldb', 'hermes'];
+// 注：source=openclaw 的处理由 fix-openclaw-source.js 负责（将误标的自研记录改回 totalclaw）；
+// 真正的第三方 openclaw 镜像保持其来源标签可见，不在此处下架。
 
 async function main() {
   const apply = process.argv.includes('--apply');

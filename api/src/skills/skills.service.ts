@@ -36,10 +36,19 @@ export class SkillsService implements OnModuleInit {
    */
   async onModuleInit() {
     try {
-      const pending = await this.skillModel.countDocuments({ kind: null }).exec();
+      // 仅补全 skillId 不以 'role:' 开头的文档，防止角色文档被误改为 skill。
+      const skillFilter = { kind: null, skillId: { $not: /^role:/ } };
+      const pending = await this.skillModel.countDocuments(skillFilter).exec();
       if (pending > 0) {
-        const r = await this.skillModel.updateMany({ kind: null }, { $set: { kind: 'skill' } }).exec();
+        const r = await this.skillModel.updateMany(skillFilter, { $set: { kind: 'skill' } }).exec();
         this.logger.log(`kind 补全：${r.modifiedCount} 个无 kind 文档 → 'skill'`);
+      }
+      // 将 skillId 以 'role:' 开头但 kind 不是 'role' 的文档修正为 role
+      const roleFilter = { skillId: /^role:/, kind: { $ne: 'role' } };
+      const roleCount = await this.skillModel.countDocuments(roleFilter).exec();
+      if (roleCount > 0) {
+        const r = await this.skillModel.updateMany(roleFilter, { $set: { kind: 'role' } }).exec();
+        this.logger.warn(`角色 kind 修正：${r.modifiedCount} 个 role:* 文档 kind 非 'role'，已修正`);
       }
       await this.skillModel.collection.createIndex(
         { kind: 1, syncedAt: -1, _id: -1 },
@@ -68,7 +77,13 @@ export class SkillsService implements OnModuleInit {
     } else if (query.category) {
       filter.category = query.category;
     }
-    if (query.source) filter.source = query.source;
+    // 虚拟来源 'totalclaw-community'：映射到 source=totalclaw + ownership=community
+    if (query.source === 'totalclaw-community') {
+      filter.source = 'totalclaw';
+      filter.ownership = 'community';
+    } else if (query.source) {
+      filter.source = query.source;
+    }
     if (query.tag) filter.tags = query.tag;
     if (query.listingType) filter.listingType = query.listingType;
     if (query.ownership) filter.ownership = query.ownership;
@@ -134,7 +149,13 @@ export class SkillsService implements OnModuleInit {
     if (c) return c;
     const kindMatch = kind === 'role' ? 'role' : 'skill';
     const match: Record<string, unknown> = { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch };
-    if (source) match.source = source; // 选了来源 → 只统计该来源下的分类
+    // 虚拟来源 'totalclaw-community'：映射到 source=totalclaw + ownership=community
+    if (source === 'totalclaw-community') {
+      match.source = 'totalclaw';
+      match.ownership = 'community';
+    } else if (source) {
+      match.source = source;
+    }
     const r = await this.skillModel.aggregate([
       { $match: match },
       { $group: { _id: '$category', count: { $sum: 1 } } },
@@ -144,17 +165,34 @@ export class SkillsService implements OnModuleInit {
     return r;
   }
 
-  /** 来源聚合（含计数），仅普通 skill（排除角色）。 */
+  /** 来源聚合（含计数），仅普通 skill（排除角色）。
+   * 额外注入虚拟来源 'totalclaw-community'（source=totalclaw + ownership=community），
+   * 供前端将 TotalClaw 自研技能与社区免费技能区分显示。
+   */
   async sourcesSummary() {
     const c = cacheGet<unknown>('sources', 600_000); // 来源缓存 10min
     if (c) return c;
-    const r = await this.skillModel.aggregate([
-      { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
-      { $group: { _id: '$source', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
+    const [realSources, communityCount] = await Promise.all([
+      this.skillModel.aggregate([
+        { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
+        { $group: { _id: '$source', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+      this.skillModel.countDocuments({
+        reviewStatus: { $in: ['n/a', 'approved'] },
+        kind: 'skill',
+        source: 'totalclaw',
+        ownership: 'community',
+      }).exec(),
     ]);
-    cacheSet('sources', r);
-    return r;
+    // 插入虚拟来源（排在 totalclaw 后面）
+    const result = [...realSources];
+    if (communityCount > 0) {
+      const tcIdx = result.findIndex((r: Record<string, unknown>) => r._id === 'totalclaw');
+      result.splice(tcIdx >= 0 ? tcIdx + 1 : 0, 0, { _id: 'totalclaw-community', count: communityCount });
+    }
+    cacheSet('sources', result);
+    return result;
   }
 
   async incrementDownloads(skillId: string) {
@@ -202,6 +240,74 @@ export class SkillsService implements OnModuleInit {
       listingType: doc.listingType,
       closedSource: !!doc.closedSource,
     };
+  }
+
+  /**
+   * 轻量名称列表（供 qiye-app 发现可安装技能）。
+   * 不分页，最多返回 50000 条；每条只含 skillId / name / slug / displayName / listingType / source。
+   */
+  async namesList(kind?: string, source?: string, listingType?: string) {
+    const ck = `names:${kind ?? ''}:${source ?? ''}:${listingType ?? ''}`;
+    const cached = cacheGet<unknown>(ck, 300_000); // 5min
+    if (cached) return cached;
+    const filter: Record<string, unknown> = { reviewStatus: { $in: ['n/a', 'approved'] } };
+    filter.kind = kind === 'role' ? 'role' : 'skill';
+    if (source === 'totalclaw-community') { filter.source = 'totalclaw'; filter.ownership = 'community'; }
+    else if (source) filter.source = source;
+    if (listingType) filter.listingType = listingType;
+    const items = await this.skillModel
+      .find(filter)
+      .select('skillId name slug displayName listingType source')
+      .sort({ 'stats.downloads': -1, _id: -1 })
+      .limit(50000)
+      .lean()
+      .exec();
+    const result = { total: items.length, items };
+    cacheSet(ck, result);
+    return result;
+  }
+
+  /**
+   * 按名称（slug / displayName / name 模糊匹配）查找 skill 详情。
+   * 供 qiye-app 通过 skill 名称安装时先解析出 skillId。
+   */
+  async findByName(nameOrSlug: string) {
+    const q = String(nameOrSlug || '').trim();
+    if (!q) throw new NotFoundException('name required');
+    const re = new RegExp(`^${this.escapeRegex(q)}$`, 'i');
+    const doc = await this.skillModel
+      .findOne({
+        reviewStatus: { $in: ['n/a', 'approved'] },
+        $or: [{ name: re }, { slug: re }, { displayName: re }],
+      })
+      .lean()
+      .exec();
+    if (!doc) {
+      // 再做宽松前缀搜索
+      const prefix = new RegExp(`^${this.escapeRegex(q)}`, 'i');
+      const fallback = await this.skillModel
+        .findOne({
+          reviewStatus: { $in: ['n/a', 'approved'] },
+          $or: [{ name: prefix }, { slug: prefix }, { displayName: prefix }],
+        })
+        .lean()
+        .exec();
+      if (!fallback) throw new NotFoundException('skill not found by name: ' + q);
+      return fallback;
+    }
+    return doc;
+  }
+
+  /**
+   * 下载 skill 文件（按名称或 skillId，逻辑同 buildDownload）。
+   * 供 qiye-app 通过名称或 ID 直接安装。
+   */
+  async buildDownloadByNameOrId(nameOrId: string) {
+    // 先按 skillId 精确匹配，再按名称查找
+    const byId = await this.skillModel.findOne({ skillId: nameOrId }).lean().exec();
+    if (byId) return this.buildDownload(byId.skillId as string);
+    const byName = await this.findByName(nameOrId);
+    return this.buildDownload(byName.skillId as string);
   }
 
   private escapeRegex(s: string) {

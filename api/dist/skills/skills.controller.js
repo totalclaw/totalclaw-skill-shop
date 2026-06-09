@@ -31,6 +31,19 @@ let SkillsController = class SkillsController {
     sourcesSummary() {
         return this.skillsService.sourcesSummary();
     }
+    namesList(kind, source, listingType) {
+        return this.skillsService.namesList(kind, source, listingType);
+    }
+    findByName(name) {
+        return this.skillsService.findByName(decodeURIComponent(name));
+    }
+    async fileByName(name, res) {
+        const dl = await this.skillsService.buildDownloadByNameOrId(decodeURIComponent(name));
+        if (dl.listingType === 'paid' || dl.closedSource) {
+            throw new common_1.ForbiddenException('paid skill: purchase and download via /api/entitlements/download');
+        }
+        (0, download_util_1.sendMarkdownAttachment)(res, dl.filename, dl.content);
+    }
     detail(skillId) {
         return this.skillsService.detail(decodeURIComponent(skillId));
     }
@@ -73,6 +86,36 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], SkillsController.prototype, "sourcesSummary", null);
+__decorate([
+    (0, common_1.Get)('names-list'),
+    (0, swagger_1.ApiOperation)({ summary: 'qiye-app 用：获取所有可安装 skill 的 skillId + name 列表（不分页，最多 50000 条）' }),
+    (0, swagger_1.ApiQuery)({ name: 'kind', required: false, description: 'skill | role；默认 skill' }),
+    (0, swagger_1.ApiQuery)({ name: 'source', required: false, description: '按来源过滤；支持虚拟来源 totalclaw-community' }),
+    (0, swagger_1.ApiQuery)({ name: 'listingType', required: false, description: 'free | paid' }),
+    __param(0, (0, common_1.Query)('kind')),
+    __param(1, (0, common_1.Query)('source')),
+    __param(2, (0, common_1.Query)('listingType')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], SkillsController.prototype, "namesList", null);
+__decorate([
+    (0, common_1.Get)('by-name/:name'),
+    (0, swagger_1.ApiOperation)({ summary: 'qiye-app 用：按名称查找 skill 详情（精确 + 前缀匹配 slug/name/displayName）' }),
+    __param(0, (0, common_1.Param)('name')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SkillsController.prototype, "findByName", null);
+__decorate([
+    (0, common_1.Get)('by-name/:name/file'),
+    (0, swagger_1.ApiOperation)({ summary: 'qiye-app 用：按名称或 skillId 下载安装 skill（免费 skill 直接下载）' }),
+    __param(0, (0, common_1.Param)('name')),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], SkillsController.prototype, "fileByName", null);
 __decorate([
     (0, common_1.Get)(':skillId'),
     (0, swagger_1.ApiOperation)({ summary: '详情（闭源 skill 默认裁剪正文）' }),
