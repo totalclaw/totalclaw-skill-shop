@@ -1,0 +1,11 @@
+# Moments Copy Generator
+
+Generate viral WeChat Moments content.
+
+---
+
+## 中文说明
+
+# 朋友圈文案生成器
+
+生成具有传播力的微信朋友圈内容。

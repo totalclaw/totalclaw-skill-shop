@@ -1,0 +1,95 @@
+# Audio Transcription Skill
+
+Auto-transcribe voice messages using faster-whisper (local, no API key needed).
+
+## Requirements
+
+```bash
+pip install faster-whisper
+```
+
+Models download automatically on first use.
+
+## Usage
+
+### Transcribe a file
+
+```bash
+python3 /root/clawd/skills/audio-transcribe/scripts/transcribe.py /path/to/audio.ogg
+```
+
+### Change model (edit script)
+
+Edit `transcribe.py` and change:
+```python
+model = WhisperModel('small', device='cpu', compute_type='int8')  # Options: tiny, base, small, medium, large-v3
+```
+
+## Models
+
+| Model | Size | VRAM/RAM | Speed | Use Case |
+|-------|------|----------|-------|----------|
+| tiny | 39 MB | ~1 GB | ⚡⚡⚡ | Quick drafts |
+| base | 74 MB | ~1 GB | ⚡⚡ | Basic accuracy |
+| **small** | **244 MB** | **~2 GB** | **⚡** | **Recommended** |
+| medium | 769 MB | ~5 GB | 🐢 | Better accuracy |
+| large-v3 | 1.5 GB | ~10 GB | 🐢🐢 | Best accuracy |
+
+## Integration
+
+Clawdbot auto-transcribes incoming voice messages when this skill is enabled.
+
+## Files
+
+- `scripts/transcribe.py` — Main transcription script
+- `SKILL.md` — This file
+
+---
+
+## 中文说明
+
+# Audio Transcription Skill
+
+使用 faster-whisper（本地运行，无需 API 密钥）自动转录语音消息。
+
+## 依赖要求
+
+```bash
+pip install faster-whisper
+```
+
+模型会在首次使用时自动下载。
+
+## 用法
+
+### 转录文件
+
+```bash
+python3 /root/clawd/skills/audio-transcribe/scripts/transcribe.py /path/to/audio.ogg
+```
+
+### 更换模型（编辑脚本）
+
+编辑 `transcribe.py` 并修改：
+```python
+model = WhisperModel('small', device='cpu', compute_type='int8')  # Options: tiny, base, small, medium, large-v3
+```
+
+## 模型
+
+| 模型 | 大小 | 显存/内存 | 速度 | 适用场景 |
+|-------|------|----------|-------|----------|
+| tiny | 39 MB | ~1 GB | ⚡⚡⚡ | 快速草稿 |
+| base | 74 MB | ~1 GB | ⚡⚡ | 基本准确度 |
+| **small** | **244 MB** | **~2 GB** | **⚡** | **推荐** |
+| medium | 769 MB | ~5 GB | 🐢 | 更好的准确度 |
+| large-v3 | 1.5 GB | ~10 GB | 🐢🐢 | 最佳准确度 |
+
+## 集成
+
+启用此技能后，Clawdbot 会自动转录收到的语音消息。
+
+## 文件
+
+- `scripts/transcribe.py` — 主转录脚本
+- `SKILL.md` — 本文件

@@ -1,0 +1,8 @@
+{
+  "skillId": "totalclaw:totalclaw~jrojas537-hotel-pricer",
+  "name": "jrojas537-hotel-pricer",
+  "category": "engineering",
+  "descriptionEn": "",
+  "englishBody": "# hotel-pricer Skill\n\nA Go-based CLI for searching hotel availability and pricing using the Amadeus API.\n\n## Description\n\nThis skill allows the agent to find hotel deals by city, check-in/out dates, and number of guests. It securely manages Amadeus API credentials and provides formatted JSON output.\n\n## Prerequisites\n\n- `go` (for installation)\n- An Amadeus for Developers account with API Key and Secret.\n\n## Installation\n\nThe `hotel-pricer` binary must be compiled and placed in the system's PATH.\n\n```bash\n# From the hotel-pricer source directory\ngo build\nsudo mv hotel-pricer /usr/local/bin/\n```\n\n## Configuration\n\nCredentials must be set before use.\n\n```bash\nhotel-pricer config set --api-key YOUR_API_KEY --api-secret YOUR_API_SECRET\n```\n\n## Usage\n\n### Search for Hotels\n\n```bash\nhotel-pricer search --city <IATA_CODE> --check-in <YYYY-MM-DD> --check-out <YYYY-MM-DD> [flags]\n```\n\n**Example:**\n`hotel-pricer search --city NYC --check-in 2024-12-24 --check-out 2024-12-28 --guests 2`\n\n### Flags\n\n- `--city, -c`: City code (IATA) (required)\n- `--check-in, -i`: Check-in date (YYYY-MM-DD) (required)\n- `--check-out, -o`: Check-out date (YYYY-MM-DD) (required)\n- `--guests, -g`: Number of guests (default: 1)\n- `--radius, -r`: Search radius in kilometers (default: 20)",
+  "englishTruncated": false
+}

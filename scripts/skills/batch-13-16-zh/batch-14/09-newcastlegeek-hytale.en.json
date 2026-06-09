@@ -1,0 +1,8 @@
+{
+  "skillId": "totalclaw:totalclaw~newcastlegeek-hytale",
+  "name": "newcastlegeek-hytale",
+  "category": "engineering",
+  "descriptionEn": "",
+  "englishBody": "# Hytale Server Skill\n\nManage a local Hytale dedicated server using the official downloader and screen.\n\n## Requirements\n- Java 21+ (Installed)\n- Screen (Installed)\n- Hytale Downloader (User must provide)\n- Credentials (User must provide `hytale-downloader-credentials.json` in `~/hytale_server`)\n\n## Setup\n\n1. **Download the Hytale Downloader:**\n   - Get the zip from: `https://downloader.hytale.com/hytale-downloader.zip`\n   - Unzip it and place `hytale-downloader-linux-amd64` in `~/hytale_server/`.\n   - Make it executable: `chmod +x ~/hytale_server/hytale-downloader-linux-amd64`\n\n2. **Add Credentials:**\n   - Place your `hytale-downloader-credentials.json` in `~/hytale_server/`.\n\n## Commands\n\n### `hytale start`\nStarts the server in a detached screen session.\n- **Run:** `/home/clawd/.npm-global/lib/node_modules/clawdbot/skills/hytale/hytale.sh start`\n\n### `hytale stop`\nGracefully stops the server.\n- **Run:** `/home/clawd/.npm-global/lib/node_modules/clawdbot/skills/hytale/hytale.sh stop`\n\n### `hytale update`\nDownloads or updates the server files using the Hytale Downloader.\n- **Run:** `/home/clawd/.npm-global/lib/node_modules/clawdbot/skills/hytale/hytale.sh update`\n\n### `hytale status`\nChecks if the server process is running.\n- **Run:** `/home/clawd/.npm-global/lib/node_modules/clawdbot/skills/hytale/hytale.sh status`",
+  "englishTruncated": false
+}

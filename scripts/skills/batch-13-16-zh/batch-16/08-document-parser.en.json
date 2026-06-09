@@ -1,0 +1,8 @@
+{
+  "skillId": "totalclaw:totalclaw~document-parser",
+  "name": "document-parser",
+  "category": "frontend",
+  "descriptionEn": "",
+  "englishBody": "# document-parser\n\n高精度文档解析技能，从 PDF、图片、Word 文档中提取结构化数据。\n\n## 用途\n- 解析 PDF、图片 (JPG/PNG)、Word 文档\n- 版面分析与结构提取\n- 表格识别（输出 HTML/Markdown）\n- OCR 文字识别\n- 印章检测\n- 目录提取\n\n## 命令\n\n### 解析文档\n```\ndocument-parser parse <文件路径> [选项]\n```\n\n示例：\n```\ndocument-parser parse C:\\docs\\report.pdf\ndocument-parser parse C:\\docs\\scan.jpg --layout --table\ndocument-parser parse C:\\docs\\contract.docx --output markdown\n```\n\n### 查询任务状态\n```\ndocument-parser status <任务 ID>\n```\n\n## 参数说明\n\n| 参数 | 说明 | 示例 |\n|------|------|------|\n| 文件路径 | PDF/图片/Word 文件路径 | `C:\\docs\\report.pdf` |\n| --layout | 启用版面分析 | `--layout` |\n| --table | 启用表格识别 | `--table` |\n| --seal | 启用印章检测 | `--seal` |\n| --output | 输出格式 (json/markdown/both) | `--output markdown` |\n| --pages | 页码范围 | `--pages 1-5,8,10-12` |\n\n## 配置\n\n### 方式一：环境变量\n```\nDOCUMENT_PARSER_API_KEY=your_api_key\nDOCUMENT_PARSER_BASE_URL=http://47.111.146.164:8088/taidp/v1/idp/general_parse\n```\n\n### 方式二：配置文件\n在技能目录创建 `config.json`：\n```json\n{\n  \"api_key\": \"your_api_key\",\n  \"base_url\": \"http://47.111.146.164:8088/taidp/v1/idp/general_parse\"\n}\n```\n\n## 输出格式\n\n返回结构化 JSON 包含：\n- **pages**: 解析后的页面数组\n- **elements**: 版面元素（文本、表格、图片等）\n- **markdown**: Markdown 格式文本\n- **data**: 数据统计摘要\n\n## 依赖\n- requests\n- python-docx (Word 支持)\n- Pillow (图片处理)\n\n## 错误码\n\n| 错误码 | 消息 | 说明 |\n|--------|------|------|\n| 10000 | Success | 识别成功 |\n| 10001 | Missing parameter | 参数缺失 |\n| 10002 | Invalid parameter | 非法参数 |\n| 10003 | Invalid file | 文件格式非法 |\n| 10004 | Failed to recognize | 识别失败 |\n| 10005 | Internal error | 内部错误 |",
+  "englishTruncated": false
+}

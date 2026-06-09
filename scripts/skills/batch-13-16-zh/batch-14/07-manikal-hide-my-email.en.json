@@ -1,0 +1,8 @@
+{
+  "skillId": "totalclaw:totalclaw~manikal-hide-my-email",
+  "name": "manikal-hide-my-email",
+  "category": "engineering",
+  "descriptionEn": "",
+  "englishBody": "# Hide My Email CLI\n\nGenerate Apple iCloud+ \"Hide My Email\" addresses from the terminal. The generated address is automatically copied to your clipboard.\n\n## Usage\n\n```bash\nhme <label> [note]\n```\n\n- **label** (required): A name for the address (e.g. the service you're signing up for)\n- **note** (optional): A description or reminder for the address\n\n## Examples\n\n```bash\n# Create an address labeled \"Twitter\"\nhme \"Twitter\"\n\n# Create an address with a note\nhme \"Shopping\" \"For online orders\"\n```\n\n## Output\n\nOn success, prints the masked email and copies the full address to clipboard:\n\n```\n✓ abc****@icloud.com (copied to clipboard)\n```\n\nOn failure, prints an error message to stderr and exits non-zero.\n\n## Requirements\n\n- macOS with an iCloud+ subscription\n- System Settings accessibility permissions granted to your terminal app",
+  "englishTruncated": false
+}

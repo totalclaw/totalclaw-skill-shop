@@ -1,0 +1,8 @@
+{
+  "skillId": "totalclaw:totalclaw~xammarie-jarvis-db-query-doctor-01",
+  "name": "jarvis-db-query-doctor-01",
+  "category": "engineering",
+  "descriptionEn": "Diagnose slow SQL and rewrite queries for safer performance. Use when handling development work that needs repeatable steps, quality gates, and practical outputs.",
+  "englishBody": "# Jarvis Db Query Doctor 01\n\nDeliver a concrete, reusable workflow for development tasks.\n\n## Inputs\n- Desired outcome and deadline\n- Constraints (time, tools, risk tolerance)\n- Available artifacts (code, docs, screenshots, logs)\n\n## Playbook\n1. Define success and failure criteria in measurable terms.\n2. Build a smallest-valid execution path before scaling effort.\n3. Execute in checkpoints; record evidence at each checkpoint.\n4. Apply quality gates before finalizing recommendations.\n5. Return implementation-ready outputs and next actions.\n\n## Quality Gates\n- Evidence-backed claims only.\n- Explicit assumptions and tradeoffs.\n- Reversible changes preferred for risky operations.\n- Clear owner + ETA for each next step.\n- Include a fallback if the primary plan fails.\n\n## Output Format\n- Situation summary (5 lines max)\n- Top findings (ranked by impact)\n- Action plan (today / this week)\n- Risks + mitigations\n- Exact checklist or commands where useful\n\n## Example prompts\n- \"Use this skill to turn my messy notes into a production-ready plan.\"\n- \"Run this skill and give me a risk-first action sequence with acceptance checks.\"",
+  "englishTruncated": false
+}

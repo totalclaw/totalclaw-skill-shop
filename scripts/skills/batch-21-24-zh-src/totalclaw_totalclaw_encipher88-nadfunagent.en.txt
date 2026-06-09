@@ -1,0 +1,296 @@
+**CRITICAL COMMUNICATION RULES:**
+1. **Language**: Always respond in the SAME language as the user's question.  If in English, respond in English.
+2. **Data Loading**: BEFORE executing any operations, FIRST request and load ALL required data from user or configuration files. Use OpenClaw's memory/session storage to save loaded data so you don't need to ask again.
+3. **Telegram Integration**: 
+   - Send detailed reports to Telegram after each trading cycle
+   - If Telegram bot connection is not established, request user to start conversation with bot first
+   - Include position status, P&L, new opportunities found, trades executed
+4. **Initial Setup**: When first invoked, ask user for:
+   - MMIND_TOKEN_ADDRESS (or load from .env)
+   - MONAD_PRIVATE_KEY (or load from .env)
+   - MONAD_RPC_URL (or load from .env)
+   - MONAD_NETWORK (or load from .env)
+   - Telegram user ID for notifications
+   Save all this data in OpenClaw memory for future use.
+5. **Missing variables**: If `.env` is missing or any required variable (MONAD_PRIVATE_KEY, MONAD_RPC_URL, MMIND_TOKEN_ADDRESS, MONAD_NETWORK) is not set, **ask the user to provide it** before running trading or scripts. Do not proceed with buy/sell or execute-bonding-v2 until config is complete.
+
+# Nad.fun Autonomous Trading Agent
+
+Autonomous trading agent that scans Nad.fun markets, analyzes tokens using momentum strategies, executes trades, and distributes profits to MMIND token holders.
+
+## Prerequisites
+
+- `monad-development` skill installed (for wallet and RPC setup)
+- `nadfun-trading` skill installed (for buy/sell operations), or use the `trading/` folder from this repo
+- `nadfun-indexer` skill installed (for querying events)
+- `nadfun-agent-api` skill installed (for market data)
+- Network configured (mainnet only for this skill)
+- MMIND token address configured
+
+**Paths (clean install):** Config is read from `NADFUN_ENV_PATH` if set, else `$HOME/nadfunagent/.env`. Positions report: `POSITIONS_REPORT_PATH` or `$HOME/nadfunagent/positions_report.json`. Scripts from `nadfun-trading` may be at `~/.openclaw/workspace/skills/nadfun-trading` or at `<this-repo>/trading`. See `DEPENDENCIES.md`.
+
+## Configuration
+
+**CRITICAL**: Load environment variables from `.env` file (default path: `$HOME/nadfunagent/.env`; override with `NADFUN_ENV_PATH`):
+
+- `MMIND_TOKEN_ADDRESS`: Address of MMIND token for profit distribution (required)
+- `MONAD_PRIVATE_KEY`: Private key for trading wallet (required)
+- `MONAD_RPC_URL`: RPC endpoint URL (required)
+- `MONAD_NETWORK`: Network type - "mainnet" or "testnet" (required)
+- `MAX_POSITION_SIZE`: Maximum position size in MON (default: 0.1)
+- `PROFIT_TARGET_PERCENT`: Take-profit threshold (default: 20%)
+- `STOP_LOSS_PERCENT`: Stop-loss threshold (default: 10%)
+- `PNL_DISTRIBUTION_PERCENT`: % of profit to distribute (default: 30%)
+
+**Before starting trading cycle:**
+1. Read `.env` file (path: `NADFUN_ENV_PATH` or `$HOME/nadfunagent/.env`). If the file is missing or any required variable is empty, **ask the user** to provide MMIND_TOKEN_ADDRESS, MONAD_PRIVATE_KEY, MONAD_RPC_URL, MONAD_NETWORK — do not run trading until config is complete.
+2. Load `MMIND_TOKEN_ADDRESS` - use this for profit distribution
+3. Load `MONAD_PRIVATE_KEY` - use this for wallet operations
+4. Load `MONAD_RPC_URL` - use this for blockchain queries
+5. Load `MONAD_NETWORK` - determines API endpoints (mainnet: api.nadapp.net, testnet: dev-api.nad.fun)
+
+## Workflow
+
+**EXECUTION SUMMARY - READ THIS FIRST:**
+1. **Load config** from `$HOME/nadfunagent/.env` (MMIND_TOKEN_ADDRESS, MONAD_PRIVATE_KEY, MONAD_RPC_URL, MONAD_NETWORK)
+2. **Execute ONLY 3 methods** (from HAR file analysis): Method 5 (New Events API), Method 6 (Market Cap API), Method 7 (Creation Time API)
+3. **Combine results** - merge all token addresses from 3 methods, count frequency (how many methods found each token, max 3)
+4. **Prioritize** - sort tokens by frequency (tokens found in 2-3 methods = higher priority)
+5. **Save tokens** - save ALL found tokens (up to top 50 for storage) to `$HOME/nadfunagent/found_tokens.json` for manual review
+6. **Analyze** - get token info, market data, metrics via Agent API, calculate scores
+7. **Filter** - keep only tokens with min liquidity 5 MON, min holders 5
+8. **Trade** - execute trades if score >= 60
+9. **Distribute** - distribute profits to MMIND holders if profit >= 0.1 MON
+
+### 1. Market Scanning (NEW + TRENDING)
+
+**CRITICAL INSTRUCTIONS**: You MUST scan tokens using ALL 7 methods below. Execute each method step-by-step and collect ALL found token addresses.
+
+**EXECUTION ORDER:**
+1. Method 1: CurveCreate events (Indexer) - NEW tokens
+2. Method 2: CurveBuy events (Indexer) - TRENDING by volume  
+3. Method 3: Swap History (Agent API) - TRENDING by 24h volume
+4. Method 4: Holdings (Agent API) - ACTIVE tokens from large traders
+5. Method 5: New Events API - REAL-TIME BUY/CREATE events
+6. Method 6: Market Cap API - TOP tokens by capitalization
+7. Method 7: Creation Time API - NEWEST tokens
+
+**STEP-BY-STEP EXECUTION:**
+
+**CRITICAL LOGGING REQUIREMENT:**
+After executing EACH method, you MUST log:
+1. Print: "✅ Method X executed: Found N tokens"
+2. Print: "Method X token addresses: <address1> <address2> ..."
+3. If method failed: Print: "❌ Method X failed: <error reason>"
+4. This helps track which methods are working and debug issues
+
+**NOTE:** Only Methods 5, 6, and 7 are used (from HAR file analysis). Methods 1-4 are disabled.
+
+**STATUS CHECK:** This method requires RPC access. You MUST execute it, don't skip it!
+
+**What to do:**
+1. Read `$HOME/nadfunagent/.env` to get `MONAD_RPC_URL` and `MONAD_NETWORK`
+2. Get current block number using RPC: `eth_blockNumber`
+3. Calculate: `safeLatest = currentBlock - 10` (safety margin)
+4. Scan last 900 blocks in chunks of 100 blocks (RPC limit)
+5. For each chunk, query CurveCreate events using `nadfun-indexer` skill
+
+**How to execute:**
+- Use `nadfun-indexer` skill with parameters: `event=CurveCreate`, `fromBlock=<start>`, `toBlock=<end>`
+- Extract token addresses from events: `event.args.token` or `event.args[1]` (token is second argument)
+- Collect all unique token addresses
+
+**Example command structure:**
+```
+Use skill: nadfun-indexer
+Parameters: event=CurveCreate, fromBlock=<calculated_start>, toBlock=<calculated_end>
+Extract: token address from each event
+```
+
+**Expected result:** Array of token addresses (0x...) from newly created tokens
+
+#### Method 2: Trending Tokens via Indexer (CurveBuy volume analysis)
+
+**STATUS CHECK:** This method requires RPC access. You MUST execute it, don't skip it!
+
+**What to do:**
+1. Query CurveBuy events from last 900 blocks (same pagination as Method 1)
+2. For each event, extract: token address and amountIn (MON spent)
+3. Sum volume per token address
+4. Sort tokens by total volume (descending)
+5. Take top 20 tokens with highest volume
+
+**How to execute:**
+1. **Use same RPC setup as Method 1:** Get publicClient from monad-development skill
+2. **Query CurveBuy events:** For each 100-block chunk:
+   - Use `nadfun-indexer` skill: `event=CurveBuy`, `fromBlock=<start>`, `toBlock=<end>`
+   - OR use viem: `publicClient.getContractEvents({ address: CURVE_ADDRESS, eventName: "CurveBuy", fromBlock, toBlock })`
+3. **Extract data:** From each event:
+   - `token = event.args.token` or `event.args[1]`
+   - `amountIn = event.args.amountIn` or `event.args[2]` (amount in MON)
+4. **Calculate volume:** Group by token address, sum all amountIn values
+5. **Sort and filter:** Sort by total volume DESC, take top 20
+6. **Log results:** Print "✅ Method 2: Found top 20 trending tokens by volume"
+
+**Example:**
+```
+1. Use same RPC client from Method 1
+2. Query CurveBuy events in chunks of 100 blocks
+3. For each event: extract token and amountIn
+4. Sum volume per token
+5. Sort DESC, take top 20
+6. Print: "✅ Method 2: Found 20 trending tokens"
+```
+
+**Expected result:** Top 20 token addresses sorted by trading volume
+
+#### Method 3: Trending Tokens via Agent API (Swap History Analysis)
+
+**What to do:**
+1. Take top 10 tokens from Method 2 (highest volume)
+2. For each token, query swap history via Agent API
+3. Calculate 24h volume from swap history
+4. Keep tokens with >= 1 MON volume in last 24 hours
+
+**How to execute:**
+- Determine API URL: if `MONAD_NETWORK=mainnet` then `https://api.nadapp.net`, else `https://dev-api.nad.fun`
+- For each token, make GET request: `${API_URL}/agent/swap-history/${tokenAddress}?limit=50&trade_type=ALL`
+- Parse response JSON
+- For each swap in `response.swaps`:
+  - Check `swap.swap_info.timestamp` - if within last 24 hours
+  - Sum `swap.swap_info.native_amount` (in wei, convert to MON: divide by 1e18)
+- Keep tokens with total 24h volume >= 1 MON
+- Add 1-2 second delay between API calls to avoid rate limits
+
+**Example:**
+```
+API_URL = MONAD_NETWORK === 'mainnet' ? 'https://api.nadapp.net' : 'https://dev-api.nad.fun'
+For each token in top10:
+  GET ${API_URL}/agent/swap-history/${token}?limit=50&trade_type=ALL
+  Calculate 24h volume
+  If volume >= 1 MON: add to trendingViaAPI
+  Wait 1-2 seconds
+```
+
+**Expected result:** List of tokens with high 24h trading volume
+
+#### Method 4: Get All Active Tokens (via Holdings of Large Accounts)
+
+**STATUS CHECK:** Don't skip this method! Execute it with rate limit delays.
+
+**What to do:**
+1. From Method 2 CurveBuy events, find buyers who spent >1 MON
+2. Extract their addresses (sender field)
+3. Query holdings for first 5 large buyers (to avoid rate limits)
+4. Extract all token addresses they hold (balance > 0)
+
+**How to execute:**
+1. **From Method 2 results:** Use CurveBuy events already queried
+2. **Filter large buyers:**
+   - Filter events where `amountIn > 1000000000000000000` (1 MON in wei = 1e18)
+   - Extract `sender` address: `event.args.sender` or `event.args[0]`
+   - Get unique addresses, take first 5
+3. **Query holdings:** For each of 5 addresses:
+   - GET: `${API_URL}/agent/holdings/${address}?limit=50`
+   - Headers: `Accept: application/json`
+   - Wait 2 seconds between requests
+4. **Parse and extract:**
+   - Parse JSON response
+   - For each `holding` in `response.tokens`:
+     - Check `holding.balance_info.balance` - if > 0
+     - Extract `holding.token_info.address` or `holding.token_info.token_id`
+5. **Log results:** Print "✅ Method 4: Found N active tokens from large trader holdings"
+
+**Example:**
+```
+From Method 2 CurveBuy events:
+  Filter: amountIn > 1e18 (1 MON)
+  Extract: sender addresses
+  Take first 5 unique addresses
+For each address:
+  GET ${API_URL}/agent/holdings/${address}?limit=50
+  Extract tokens with balance > 0
+  Wait 2 seconds
+Print: "✅ Method 4: Found X tokens"
+```
+
+**Expected result:** Set of token addresses held by active large traders
+
+#### Method 5: New Events API (Real-time BUY/SELL/CREATE events)
+
+**STATUS:** ✅ This method is WORKING! Found 7 tokens in last scan.
+
+**What to do:**
+1. Make GET request to `/api/token/new-event` endpoint
+2. Parse JSON response (array of events)
+3. Extract token addresses from CREATE and BUY events
+4. Add all unique token addresses to collection
+
+**How to execute:**
+1. **Determine base URL:** Read MONAD_NETWORK from .env:
+   - If `MONAD_NETWORK=mainnet`: `baseUrl = 'https://nad.fun'`
+   - Else: `baseUrl = 'https://dev.nad.fun'`
+2. **Make GET request:**
+   - URL: `${baseUrl}/api/token/new-event`
+   - Headers: `Accept: application/json`, `User-Agent: OpenClaw-Agent/1.0`
+3. **Parse response:** JSON array of event objects
+4. **Extract tokens:**
+   - For each event in response:
+     - If `event.type === 'CREATE'`: extract `event.token_info.token_id`
+     - If `event.type === 'BUY'`: extract `event.token_info.token_id`
+     - If `event.type === 'SELL'`: optionally extract (indicates active trading)
+5. **Log results:** Print "✅ Method 5: Found N tokens from new events API"
+
+**Example:**
+```
+baseUrl = MONAD_NETWORK === 'mainnet' ? 'https://nad.fun' : 'https://dev.nad.fun'
+GET ${baseUrl}/api/token/new-event
+Parse JSON response
+For each event:
+  If event.type === 'CREATE' or 'BUY':
+    Add event.token_info.token_id to tokensFromEvents
+Print: "✅ Method 5: Found X tokens"
+```
+
+**Expected result:** Array of token addresses from recent CREATE and BUY events
+
+**Response structure:**
+- `type`: "BUY" | "SELL" | "CREATE"
+- `amount`: Event amount (string)
+- `token_info`: Complete token information (token_id, name, symbol, description, creator, etc.)
+- `account_info`: Account that performed the action
+
+#### Method 6: Market Cap API (Top tokens by market cap)
+
+**STATUS CHECK:** Previous error: base64 decoding failed. Fix: Use proper decoding method.
+
+**What to do:**
+1. GET request to market cap endpoint
+2. Response is base64-encoded JSON - decode it PROPERLY
+3. Extract token addresses from response
+4. Add all token addresses to collection
+
+**How to execute:**
+1. **API URL:** `${API_URL}/order/market_cap?page=1&limit=50&is_nsfw=false`
+   - Where `API_URL = MONAD_NETWORK === 'mainnet' ? 'https://api.nadapp.net' : 'https://dev-api.nad.fun'`
+2. **GET request:**
+   - Headers: `Accept: application/json`, `User-Agent: OpenClaw-Agent/1.0`
+   - Get response as text (not JSON)
+3. **Decode base64 PROPERLY:**
+   - Response body is base64 string
+   - Use Python: `import base64; decoded = base64.b64decode(response_text).decode('utf-8')`
+   - OR use command: `echo "$response_text" | base64 -d`
+   - CRITICAL: Make sure response_text is the raw base64 string, not wrapped in JSON
+4. **Parse decoded JSON:**
+   - Parse decoded string as JSON
+   - Structure: `{ "tokens": [...], "total_count": N }`
+5. **Extract tokens WITH FULL DATA:**
+   - For each token in `data.tokens`:
+     - Extract `token.token_info.token_id` (token address)
+     - **CRITICAL**: Store FULL token object with both `token_info` AND `market_info`
+     - Structure: `{token_info: {...}, market_info: {...}, percent: ...}`
+     - Add to topMarketCapTokens array (store full objects, not just addresses)
+6. **Log results:** Print "✅ Method 6: Found N tokens with market data from market cap API"
+
+**Example:**
+```

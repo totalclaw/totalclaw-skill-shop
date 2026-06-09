@@ -1,0 +1,8 @@
+{
+  "skillId": "totalclaw:totalclaw~raghulpasupathi-geo-blocking",
+  "name": "raghulpasupathi-geo-blocking",
+  "category": "engineering",
+  "descriptionEn": "",
+  "englishBody": "# Geo-Blocking Skills\n\nSkills for geographic restrictions and regional compliance.\n\n## Essential Skills\n\n### 1. Geo Shield\n**Skill ID**: `geo-shield`\n\n**Purpose**: Country-based content filtering and compliance\n\n**Features**:\n- IP geolocation\n- VPN/proxy detection\n- Tor exit node detection\n- Regional law compliance (GDPR, local censorship)\n- Custom geo-rules\n\n**Installation**:\n```bash\nnpm install @clawhub/geo-shield\n```\n\n**Use Cases**:\n- GDPR compliance (EU)\n- Local content laws (Germany hate speech, etc.)\n- Regional restrictions\n- Government mandates\n\n**Examples**:\n- EU: Block sites without GDPR compliance\n- Germany: Stricter hate speech rules\n- China: Government-mandated blocks\n- Australia: Extreme violence filtering\n\n---\n\n*For parental controls, see [PARENTAL_CONTROLS.md](PARENTAL_CONTROLS.md).*",
+  "englishTruncated": false
+}

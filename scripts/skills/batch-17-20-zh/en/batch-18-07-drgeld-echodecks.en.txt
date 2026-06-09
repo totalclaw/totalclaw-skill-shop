@@ -1,0 +1,117 @@
+# EchoDecks Skill (v1)
+
+Integrates with EchoDecks for flashcard management, study sessions, and AI generation.
+
+## Configuration
+This skill requires the `ECHODECKS_API_KEY` environment variable to be set.
+
+## Tools
+
+### `echodecks_get_decks`
+List all available decks or details for a specific deck.
+- `id` (optional): The ID of a specific deck to retrieve.
+
+### `echodecks_get_due_cards`
+Retrieve cards that are currently due for review.
+- `deck_id` (optional): Filter due cards by a specific deck ID.
+
+### `echodecks_submit_review`
+Submit a spaced repetition review for a card.
+- `card_id` (required): The ID of the card being reviewed.
+- `quality` (required): Integer rating (0-3).
+  - 0: Again (Failure/Forgot)
+  - 1: Hard
+  - 2: Good
+  - 3: Easy
+
+### `echodecks_generate_cards`
+Generate new flashcards from a topic or text content using AI.
+- `deck_id` (required): The target deck ID for the new cards.
+- `topic` (optional): A short topic string to generate from.
+- `text` (optional): Raw text content to generate from.
+**Note:** One of `topic` or `text` must be provided. Cost: 10 credits.
+
+### `echodecks_generate_podcast`
+Generate an audio podcast summary or conversation from a deck.
+- `deck_id` (required): The source deck ID.
+- `voice` (optional): Voice preference (default: "neutral").
+- `type` (optional): "summary" or "conversation" (default: "summary").
+**Note:** Cost: 50 credits.
+
+### `echodecks_get_podcasts`
+Retrieve existing podcasts for a deck.
+- `deck_id` (optional): Filter by deck ID.
+- `id` (optional): specific podcast ID.
+
+### `echodecks_get_user_stats`
+Get current user profile and study statistics.
+
+## Implementation Details
+
+All tools are wrappers around `skills/echodecks-v1/echodecks_client.py`.
+
+```bash
+# Example
+./skills/echodecks-v1/echodecks_client.py get-due --deck-id 123
+```
+
+---
+
+## 中文说明
+
+# EchoDecks 技能 (v1)
+
+与 EchoDecks 集成，用于抽认卡管理、学习会话和 AI 生成。
+
+## 配置
+此技能需要设置 `ECHODECKS_API_KEY` 环境变量。
+
+## 工具
+
+### `echodecks_get_decks`
+列出所有可用卡组，或某个特定卡组的详情。
+- `id`（可选）：要检索的特定卡组的 ID。
+
+### `echodecks_get_due_cards`
+检索当前到期需要复习的卡片。
+- `deck_id`（可选）：按特定卡组 ID 过滤到期卡片。
+
+### `echodecks_submit_review`
+为某张卡片提交一次间隔重复复习。
+- `card_id`（必填）：被复习卡片的 ID。
+- `quality`（必填）：整数评分（0-3）。
+  - 0: Again（失败/遗忘）
+  - 1: Hard（困难）
+  - 2: Good（良好）
+  - 3: Easy（容易）
+
+### `echodecks_generate_cards`
+使用 AI 从主题或文本内容生成新的抽认卡。
+- `deck_id`（必填）：新卡片的目标卡组 ID。
+- `topic`（可选）：用于生成的简短主题字符串。
+- `text`（可选）：用于生成的原始文本内容。
+**注意：** 必须提供 `topic` 或 `text` 之一。费用：10 积分。
+
+### `echodecks_generate_podcast`
+从某个卡组生成音频播客摘要或对话。
+- `deck_id`（必填）：来源卡组 ID。
+- `voice`（可选）：声音偏好（默认："neutral"）。
+- `type`（可选）："summary" 或 "conversation"（默认："summary"）。
+**注意：** 费用：50 积分。
+
+### `echodecks_get_podcasts`
+检索某个卡组的现有播客。
+- `deck_id`（可选）：按卡组 ID 过滤。
+- `id`（可选）：特定播客 ID。
+
+### `echodecks_get_user_stats`
+获取当前用户资料和学习统计数据。
+
+## 实现细节
+
+所有工具都是对 `skills/echodecks-v1/echodecks_client.py` 的封装。
+
+```bash
+# Example
+./skills/echodecks-v1/echodecks_client.py get-due --deck-id 123
+```

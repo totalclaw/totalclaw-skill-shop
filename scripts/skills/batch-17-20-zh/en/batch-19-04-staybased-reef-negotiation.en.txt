@@ -1,0 +1,363 @@
+# Negotiation — Close Deals and Protect Your Value
+
+Negotiate rates, scope, and terms using Chris Voss's FBI-proven frameworks adapted for freelance and consulting deals.
+Sources: Chris Voss (Never Split the Difference), Gong.io, NAHC, Klenty, Aviso.
+All outputs go to `workspace/artifacts/`.
+
+## Use when
+- Negotiating rates with a client (Upwork, direct, retainer)
+- Client pushes back on pricing after proposal
+- Scope creep discussion — client wants more without paying more
+- Contract terms negotiation (payment schedules, milestones, IP)
+- Equity/revenue share deals (like Alfred)
+- Any conversation where money or terms are on the table
+
+## Don't use when
+- Initial discovery (use client-discovery skill — negotiate AFTER you understand their needs)
+- Writing the proposal itself (use proposal-writing skill)
+- Handling generic objections before the money talk (use objection-handling skill)
+- Internal team disagreements (different dynamic entirely)
+
+## Negative examples
+- "Help me find clients" → No. This is for deal-closing, not lead gen.
+- "Write my Upwork proposal" → No. Use proposal-writing skill.
+- "A client is unhappy with the work" → No. That's service recovery, not negotiation.
+
+## Edge cases
+- Upwork client asks for lower rate → YES. Price defense framework applies.
+- Client wants to add scope without budget increase → YES. Scope protection.
+- Revenue share structure (Alfred) → YES. Partnership term negotiation.
+- Negotiating with yourself (pricing confidence) → Borderline but useful — the inner game section helps.
+
+---
+
+## Chris Voss's Core Principles
+
+### 1. Tactical Empathy
+Understand their perspective BEFORE pushing yours. Not fake empathy — genuine curiosity about their constraints.
+
+**In practice:**
+- "It sounds like budget is tight this quarter." (labeling)
+- "How can we structure this so it works for both of us?" (calibrated question)
+- "What would make you feel confident moving forward?" (their terms, not yours)
+
+### 2. Go for "No"
+Stop chasing "yes." People feel trapped by yes. When they say "no," they feel safe and in control — then they'll actually listen.
+
+**In practice:**
+- Instead of "Would you like to move forward?" → "Would it be a terrible idea to start with a pilot?"
+- Instead of "Can we agree on $500?" → "Is $500 unreasonable for this scope?"
+- After their "no": "What would you need to change to make this work?"
+
+### 3. Get to "That's Right"
+"That's right" = genuine alignment. "You're right" = they're dismissing you. Know the difference.
+
+**How to trigger it:** Summarize their situation so accurately they say "that's right":
+"So if I understand correctly — you need this done by March, your budget is around $300, and your main concern is that the last developer left the project half-done. That's a lot of risk to take on again."
+
+When they say "that's right," you own the conversation.
+
+### 4. Mirroring
+Repeat the last 1-3 words they said. It feels like magic — they'll elaborate, reveal more information, and feel heard.
+
+**Example:**
+- Client: "We've been burned before by freelancers who disappear."
+- You: "...who disappear?"
+- Client: "Yeah, our last developer took the deposit and stopped responding after week 2."
+- Now you know the REAL objection and can address it directly.
+
+### 5. Labeling
+Name their emotion or concern out loud. "It seems like..." / "It sounds like..." / "It feels like..."
+
+**Example:**
+- "It seems like you're worried about committing to a monthly retainer."
+- "It sounds like the previous experience made you cautious about paying upfront."
+
+Labeling defuses negative emotions and amplifies positive ones.
+
+---
+
+## The Ackerman Model (Price Negotiation)
+
+When you MUST negotiate on price (not ideal — hold value first):
+
+1. Set your target price
+2. First offer: 65% of your target (if they're offering first, let them anchor)
+3. Second offer: 85% of target
+4. Third offer: 95% of target
+5. Final offer: 100% of target + throw in a non-monetary perk
+
+**Example (your target: $500):**
+- They say: "Can you do it for $300?"
+- You: "Based on the scope, I'd normally be at $700 for this. (anchor high) I could do $425 if we trim [specific thing]."
+- They push back: "Still high."
+- You: "$475, and I'll include documentation + 1 week of support."
+- Final: "$500 flat, includes everything, and I'll start today."
+
+**The non-round number trick:** $487 feels more calculated and credible than $500. Use precise numbers in final offers.
+
+---
+
+## Rate Defense Framework
+
+When a client says "your rate is too high":
+
+### Step 1: Don't React
+Silence is power. Pause for 3 seconds. Let the discomfort sit. Most people fill silence with concessions — don't be that person.
+
+### Step 2: Acknowledge
+"I appreciate you being upfront about that." (builds trust)
+
+### Step 3: Reframe Value
+"Let me walk you through what this investment delivers: [specific outcomes from discovery]. For context, agencies charge $150-200/hr for this. My rate reflects [your specific edge]."
+
+### Step 4: Offer Structure, Not Discount
+- "Would it help to split into milestones? Pay $250 now, $250 on completion."
+- "We could reduce scope to fit $X — I'd remove [specific item]. Which matters most to you?"
+- "I can offer a 10% discount on a 3-month retainer." (trades discount for commitment)
+
+### Step 5: Walk Away (If Needed)
+"I want to make sure you get the right fit. If $X doesn't work for your budget, I totally understand. Would you like me to recommend someone in a different price range?"
+
+Walking away with grace often brings them back at your price.
+
+---
+
+## Scope Creep Defense
+
+When "just one more thing" keeps happening:
+
+**Prevention (in proposal):**
+- Explicit "What's NOT included" section
+- "Additional requests billed at $X/hr or scoped separately"
+- Milestone-based payments tied to specific deliverables
+
+**In the moment:**
+1. Acknowledge: "Great idea — I can see why that'd be valuable."
+2. Scope it: "That would take approximately X hours to add."
+3. Option: "Want me to include it in a Phase 2 scope, or add it to this project at $Y?"
+4. Never: Just absorb it silently. Every "free" addition trains them to expect more.
+
+---
+
+## Revenue Share / Equity Negotiation
+
+For deals like Alfred (equity/rev share):
+
+**Protect yourself:**
+- Define exactly what "revenue" means (gross? net? after expenses?)
+- Set a minimum monthly guarantee if possible
+- Time-box the agreement (12 months, then renegotiate)
+- Define what happens if the client stops using the service
+- Get it in writing — even a simple email agreement
+
+**Fair structures:**
+- 10-20% of revenue generated by your automation (directly attributable)
+- $0 upfront + rev share (higher risk for you = higher % justified)
+- Monthly retainer + smaller rev share (balanced risk)
+
+---
+
+## The Inner Game
+
+The biggest negotiation is with yourself:
+
+- **Don't apologize for your price.** "My rate is $49/hr" not "My rate is, um, $49... if that works?"
+- **Silence is your weapon.** State your price and stop talking. The first person to speak after the number loses.
+- **You're a peer, not a supplicant.** Discovery-first selling positions you as an expert diagnosing their problem, not an applicant hoping for work.
+- **Walk-away power is real.** If you're willing to lose the deal, you negotiate from strength. If you're desperate, they smell it.
+- **Raise your rate.** If you're winning 100% of proposals, you're too cheap. Aim for 30-50% win rate — that means your price is in the right zone.
+
+---
+
+## Key Principles
+- Negotiation is not combat — it's collaborative problem-solving
+- Tactical empathy > aggressive tactics (every time)
+- "No" is the start of negotiation, not the end
+- Never split the difference — find creative solutions instead of meeting in the middle
+- Non-round numbers ($487 vs $500) signal precision and credibility
+- If you win 100% of negotiations, you're leaving money on the table
+
+---
+
+## 中文说明
+
+# 谈判 — 拿下交易并守护你的价值
+
+运用 Chris Voss 经 FBI 验证的框架来谈判费率、范围与条款，并针对自由职业和咨询类交易做了调整。
+来源：Chris Voss（《Never Split the Difference》）、Gong.io、NAHC、Klenty、Aviso。
+所有产出都保存到 `workspace/artifacts/`。
+
+## 适用场景
+- 与客户谈判费率（Upwork、直接合作、长期顾问费）
+- 提案后客户对价格提出异议
+- 范围蔓延的讨论 — 客户想要更多却不愿多付钱
+- 合同条款谈判（付款节奏、里程碑、知识产权）
+- 股权/收入分成类交易（如 Alfred）
+- 任何涉及金钱或条款的对话
+
+## 不适用场景
+- 初步需求探查（请使用 client-discovery 技能 — 在了解客户需求之后再谈判）
+- 撰写提案本身（请使用 proposal-writing 技能）
+- 在谈钱之前处理通用异议（请使用 objection-handling 技能）
+- 内部团队分歧（完全是另一种动态）
+
+## 反例
+- “帮我找客户” → 不行。这是用来成交的，不是用来获客的。
+- “帮我写 Upwork 提案” → 不行。请使用 proposal-writing 技能。
+- “客户对工作成果不满意” → 不行。那属于服务补救，不是谈判。
+
+## 边界情况
+- Upwork 客户要求降低费率 → 是的。适用价格防御框架。
+- 客户想增加范围却不增加预算 → 是的。范围保护。
+- 收入分成结构（Alfred） → 是的。合作条款谈判。
+- 与自己谈判（定价信心） → 介于两可，但有用 — “内在博弈”一节会有帮助。
+
+---
+
+## Chris Voss 的核心原则
+
+### 1. 战术性共情
+在表达自己的立场之前，先理解对方的视角。不是假装共情 — 而是对其约束条件抱有真正的好奇心。
+
+**实践做法：**
+- “听起来这个季度预算很紧张。”（标注情绪）
+- “我们怎么安排才能让双方都满意？”（校准式提问）
+- “怎样才能让你有信心继续推进？”（按对方的条件，而不是你的）
+
+### 2. 争取听到“不”
+别再追着“是”跑。“是”会让人感到被困住。当他们说“不”时，会觉得安全且掌握主动 — 然后他们才会真正去听。
+
+**实践做法：**
+- 不要问“你愿意继续推进吗？” → 改问“先从一个试点项目开始，会是个糟糕的主意吗？”
+- 不要问“我们能定在 $500 吗？” → 改问“对于这个范围，$500 是不合理的吗？”
+- 在他们说“不”之后：“你需要改变什么，才能让这件事成？”
+
+### 3. 引导出“没错”
+“没错（That's right）”= 真正的一致。“你说得对（You're right）”= 他们在敷衍你。要分清两者的区别。
+
+**如何引导出来：** 把对方的处境总结得足够准确，让他们说出“没错”：
+“所以如果我理解没错的话 — 你需要在三月前完成，预算大约 $300，而你最主要的担忧是上一个开发者把项目做了一半就走了。这意味着你要再次承担很大的风险。”
+
+当他们说出“没错”时，你就主导了整场对话。
+
+### 4. 复述（Mirroring）
+重复对方说的最后 1-3 个词。它效果近乎神奇 — 对方会进一步展开、透露更多信息，并感到被倾听。
+
+**示例：**
+- 客户：“我们以前被那些会突然消失的自由职业者坑过。”
+- 你：“……会突然消失？”
+- 客户：“是啊，上一个开发者拿了定金，到第二周就不回消息了。”
+- 现在你知道了真正的异议所在，可以直接加以应对。
+
+### 5. 标注情绪（Labeling）
+把对方的情绪或顾虑明确说出来。“看起来……” / “听起来……” / “感觉上……”
+
+**示例：**
+- “看起来你担心承诺一份按月支付的长期顾问合同。”
+- “听起来之前的经历让你对预先付款变得谨慎了。”
+
+标注情绪能化解负面情绪，并放大正面情绪。
+
+---
+
+## 阿克曼模型（价格谈判）
+
+当你**必须**在价格上谈判时（并不理想 — 优先守住价值）：
+
+1. 设定你的目标价
+2. 第一次报价：目标价的 65%（如果对方先报价，就让他们去锚定）
+3. 第二次报价：目标价的 85%
+4. 第三次报价：目标价的 95%
+5. 最终报价：目标价的 100% + 附赠一项非金钱的额外好处
+
+**示例（你的目标价：$500）：**
+- 对方说：“能不能 $300 做？”
+- 你：“按这个范围来看，我通常会报 $700。（高位锚定）如果我们砍掉 [某项具体内容]，我可以做 $425。”
+- 对方还价：“还是太高。”
+- 你：“$475，我会附上文档 + 一周的支持。”
+- 最终：“$500 整，全部包含，而且我今天就能开始。”
+
+**非整数小技巧：** $487 比 $500 更显得经过精打细算、更可信。在最终报价中使用精确的数字。
+
+---
+
+## 费率防御框架
+
+当客户说“你的费率太高了”：
+
+### 第 1 步：不要反应
+沉默就是力量。停顿 3 秒。让那份不适感停留。大多数人会用让步去填补沉默 — 别做那种人。
+
+### 第 2 步：表示认可
+“感谢你坦率地说出来。”（建立信任）
+
+### 第 3 步：重新框定价值
+“我来给你梳理一下这笔投入能带来什么：[来自需求探查的具体成果]。作为参照，机构做这件事要收 $150-200/小时。我的费率反映的是 [你的具体优势]。”
+
+### 第 4 步：提供结构，而非折扣
+- “拆成里程碑会不会有帮助？现在付 $250，完成时再付 $250。”
+- “我们可以缩减范围以适配 $X — 我会去掉 [某项具体内容]。对你来说哪一项最重要？”
+- “签三个月顾问合同，我可以给 10% 的折扣。”（用折扣换取承诺）
+
+### 第 5 步：必要时果断离开
+“我想确保你找到真正合适的人选。如果 $X 不符合你的预算，我完全理解。需要我帮你推荐一位在不同价位区间的人吗？”
+
+体面地离开，往往会让对方按你的价格回头。
+
+---
+
+## 范围蔓延防御
+
+当“再加一个小东西”反复出现时：
+
+**预防（在提案中）：**
+- 明确写出“不包含哪些内容”一节
+- “额外需求按 $X/小时计费，或单独核算范围”
+- 与具体交付物挂钩的里程碑式付款
+
+**当下应对：**
+1. 表示认可：“好主意 — 我能理解它为什么有价值。”
+2. 核算范围：“增加这个大约需要 X 小时。”
+3. 给出选项：“要我把它放进第二阶段（Phase 2）范围，还是按 $Y 加进当前项目？”
+4. 绝不：默默把它吸收掉。每一次“免费”追加，都是在训练对方期待更多。
+
+---
+
+## 收入分成 / 股权谈判
+
+针对像 Alfred 这样的交易（股权/收入分成）：
+
+**保护自己：**
+- 精确定义“收入”指什么（毛收入？净收入？扣除费用后？）
+- 如有可能，设定每月最低保底
+- 给协议设定时限（12 个月，之后重新谈判）
+- 明确客户停止使用该服务时会发生什么
+- 落实到书面 — 哪怕只是一封简单的邮件协议
+
+**公平的结构：**
+- 你的自动化所带来收入的 10-20%（可直接归因的部分）
+- $0 预付 + 收入分成（你承担的风险更高 = 更高的分成比例才合理）
+- 月度顾问费 + 较小比例的收入分成（风险均衡）
+
+---
+
+## 内在博弈
+
+最大的谈判是与你自己的谈判：
+
+- **不要为你的价格道歉。** 说“我的费率是 $49/小时”，而不是“我的费率是，呃，$49……如果可以的话？”
+- **沉默是你的武器。** 说出你的价格然后停止说话。报出数字后第一个开口的人就输了。
+- **你是对等的同行，不是乞求者。** 以需求探查为先的销售方式，把你定位成诊断对方问题的专家，而不是渴望接活的申请者。
+- **能够走开的底气是真实存在的。** 如果你愿意丢掉这单，你就能从强势位置去谈判。如果你很急切，对方会嗅到。
+- **提高你的费率。** 如果你的提案 100% 都中标，说明你太便宜了。把成交率目标定在 30-50% — 那意味着你的价格落在了正确的区间。
+
+---
+
+## 关键原则
+- 谈判不是搏斗 — 而是协作式的解决问题
+- 战术性共情 > 强硬手段（每一次都是如此）
+- “不”是谈判的开始，而不是终点
+- 永远不要折中 — 寻找有创意的方案，而不是各退一步取中间
+- 非整数（$487 对比 $500）传递出精确感与可信度
+- 如果你赢得了 100% 的谈判，说明你把钱留在了桌上

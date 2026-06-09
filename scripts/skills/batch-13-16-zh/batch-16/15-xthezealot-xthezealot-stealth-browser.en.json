@@ -1,0 +1,8 @@
+{
+  "skillId": "totalclaw:totalclaw~xthezealot-xthezealot-stealth-browser",
+  "name": "xthezealot-xthezealot-stealth-browser",
+  "category": "frontend",
+  "descriptionEn": "",
+  "englishBody": "# Stealth Browser\n\nUse `/stealth-browser` to access websites with advanced bot protection.\n\n## Commands\n\n- `/stealth-browser open <url>` - Fetch page HTML\n- `/stealth-browser screenshot <url>` - Take full-page screenshot  \n- `/stealth-browser pdf <url>` - Save page as PDF\n- `/stealth-browser parallel <url1> <url2> [url3...]` - Fetch multiple URLs in parallel\n\n## Examples\n\n```\n/stealth-browser open https://www.bazaraki.com/adv/6203561_2-bedroom-detached-house-for-sale/\n/stealth-browser screenshot https://example.com\n/stealth-browser pdf https://example.com\n/stealth-browser parallel https://site1.com https://site2.com https://site3.com\n```\n\n## Parallel Browsing\n\nThe `parallel` command fetches multiple URLs simultaneously using isolated browser contexts:\n- Each URL gets its own isolated context (cookies, storage, etc.)\n- Much faster than sequential fetching\n- Results returned as formatted JSON\n\n## How It Works\n\nUses Playwright Extra with Stealth Plugin to mask automation signatures:\n- Removes `navigator.webdriver` flag\n- Spoofs Chrome plugins and permissions\n- Fakes WebGL/Canvas fingerprints\n- Mimics real user behavior\n\nBypasses Cloudflare, reCAPTCHA, and most bot detection.",
+  "englishTruncated": false
+}

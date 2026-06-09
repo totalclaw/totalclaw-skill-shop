@@ -1,0 +1,8 @@
+{
+  "skillId": "totalclaw:totalclaw~tsiontesfayechromaway-tester",
+  "name": "tsiontesfayechromaway-tester",
+  "category": "hr",
+  "descriptionEn": "",
+  "englishBody": "# GitHub Issue Manager\n\nFetch GitHub issues, spawn sub-agents to implement fixes, open PRs, and monitor review comments.\n\n## Overview\n\nThis skill enables autonomous issue management on GitHub repositories. It can:\n- List and filter issues by labels, milestones, assignees\n- Spawn sub-agents to work on fixes\n- Create PRs with automated descriptions\n- Track PR review status and respond to comments\n\n## Prerequisites\n\n- `gh` CLI must be authenticated (`gh auth status`)\n- Repository must be accessible via HTTPS or SSH\n\n## Configuration\n\n```bash\n# Optional: Set default repo\nexport GITHUB_REPO=\"owner/repo\"\nexport GITHUB_TOKEN=\"ghp_xxx\"  # Or use gh auth\n```\n\n## Commands\n\n### List Issues\n\n```bash\n# All open issues\ngh issue list\n\n# With labels\ngh issue list --label \"bug\" --label \"priority\"\n\n# Assigned to you\ngh issue list --assignee \"@me\"\n```\n\n### Create Issue\n\n```bash\ngh issue create --title \"Fix login bug\" --body \"Description...\" --label bug\n```\n\n### View Issue Details\n\n```bash\ngh issue view 123\n```\n\n## Usage in Agents\n\n```python\n# Spawn agent to fix issue\nspawn_subagent(\n  task=f\"Fix GitHub issue #{issue_number}: {title}. {description}\"\n)\n```\n\n## Notes\n\n- Requires `gh` CLI installed\n- Authentication handled via `gh auth`\n- Rate limits apply (5000 requests/hour for authenticated users)",
+  "englishTruncated": false
+}

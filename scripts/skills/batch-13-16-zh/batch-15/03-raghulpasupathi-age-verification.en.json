@@ -1,0 +1,8 @@
+{
+  "skillId": "totalclaw:totalclaw~raghulpasupathi-age-verification",
+  "name": "raghulpasupathi-age-verification",
+  "category": "engineering",
+  "descriptionEn": "",
+  "englishBody": "# Age Verification Skills\n\nSkills for age verification and age-appropriate content filtering.\n\n## Essential Skills\n\n### 1. Age Guard\n**Skill ID**: `age-guard`\n\n**Purpose**: Verify user age and enforce age restrictions\n\n**Features**:\n- Document verification (ID, passport)\n- Face-based age estimation\n- Third-party verification (Yoti, Jumio)\n- Age gate UI components\n- Parental consent workflows\n\n**Installation**:\n```bash\nnpm install @clawhub/age-guard\n```\n\n**Methods**:\n1. **Self-reported**: Honor system (basic)\n2. **Document verification**: ID scanning\n3. **Face estimation**: Computer vision\n4. **Third-party**: Yoti, Jumio APIs\n5. **Parental PIN**: For children\n\n**Use Cases**:\n- COPPA compliance (children < 13)\n- Age-restricted content\n- Parental control enforcement\n\n---\n\n*For geo-blocking, see [GEO_BLOCKING.md](GEO_BLOCKING.md).*",
+  "englishTruncated": false
+}

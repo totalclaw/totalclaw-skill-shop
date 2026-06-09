@@ -1,0 +1,559 @@
+# Skill: JobTread via Pave Query API
+
+## Summary
+This skill lets you operate JobTread entirely through openclaw using the Pave-based API at `https://api.jobtread.com/pave`. Every request is a single POST with a `query` object that mirrors GraphQL-style expressions, and you decide which fields you want back. With the right grant key, you can create and manage accounts (customers/vendors), jobs, documents, tasks, locations, custom fields, documents, and even subscribe to webhooks for live updates.
+
+## Setup & Credentials
+1. **Create a grant:** Login to https://app.jobtread.com/grants and create a new grant for automation. Copy the one-time `grantKey` (it begins with `grant_` and will only show once).
+2. **Store the key locally:** Use a secure file such as `~/.config/jobtread/grant_key`. Example:
+   ```bash
+   mkdir -p ~/.config/jobtread
+   echo "grant_xxx" > ~/.config/jobtread/grant_key
+   chmod 600 ~/.config/jobtread/grant_key
+   ```
+3. **Keep it fresh:** JobTread expires keys after 3 months of inactivity, so schedule a reminder (cron/heartbeat) to rotate or re-use the grant before expiration.
+4. **Optional webhook secret:** If you plan to receive webhooks, note your endpoint URL and save the webhook ID in the same folder so you can disable or inspect it later.
+
+## Authentication
+- Every POST to `/pave` must include the grant key under `query.$.grantKey`. Example payload:
+  ```json
+  {
+    "query": {
+      "$": { "grantKey": "grant_xxx" },
+      "currentGrant": { "id": {}, "user": { "name": {} } }
+    }
+  }
+  ```
+- You can also set `notify`, `timeZone`, or `viaUserId` inside `$` when you need to suppress notifications or scope results.
+- For signed queries (PDF tokens, pre-signed data), call `pdfToken: { _: signQuery, $: { query: {...} } }` and append the token to `https://api.jobtread.com/t/`.
+
+## API Basics & Request Flow
+- All requests go to `POST https://api.jobtread.com/pave` with `Content-Type: application/json`.
+- Structure:
+  ```json
+  {
+    "query": {
+      "$": { "grantKey": "grant_xxx" },  
+      "operation": {
+        "$": { ...inputs... },
+        "field": { ...fields... }
+      }
+    }
+  }
+  ```
+- Fields you request (`id`, `name`, etc.) determine what JobTread returns. Always include `id` when you plan to reference the object later.
+- `_type` in responses tells you the schema for that node.
+
+## Common Patterns & Examples
+### 1. Discover your organization ID
+```yaml
+currentGrant:
+  user:
+    memberships:
+      nodes:
+        organization:
+          id: {}
+          name: {}
+```
+Use the returned `organization.id` in any following query.
+
+### 2. Create customers/vendors
+- **Customer**
+```yaml
+createAccount:
+  $:
+    name: "Test Customer"
+    type: customer
+    organizationId: "ORG_ID"
+  createdAccount:
+    id: {}
+    name: {}
+    type: {}
+```
+- **Vendor** (same as above but `type: vendor`).
+
+### 3. Read or update accounts
+- **Read account** by supplying `id` and requesting fields:
+```yaml
+account:
+  $:
+    id: "ACCOUNT_ID"
+  id: {}
+  name: {}
+  isTaxable: {}
+```
+- **Update** and include `customFieldValues` if needed:
+```yaml
+updateAccount:
+  $:
+    id: "ACCOUNT_ID"
+    isTaxable: false
+  account:
+    id: {}
+    isTaxable: {}
+```
+
+### 4. Query accounts list with pagination, sorting, and filters
+```yaml
+organization:
+  $: {}
+  id: {}
+  accounts:
+    $:
+      size: 5
+      page: "1"
+      sortBy:
+        - field: type
+          order: desc
+      where:
+        and:
+          - - type
+            - =
+            - customer
+          - - name
+            - =
+            - "Sebas Clients"
+    nextPage: {}
+    nodes:
+      id: {}
+      name: {}
+      type: {}
+```
+
+### 5. Use `where` with `or`, nested fields, or custom fields
+- Find account by custom field name:
+```yaml
+organization:
+  $: {}
+  id: {}
+  contacts:
+    $:
+      with:
+        cf:
+          _: customFieldValues
+          $:
+            where:
+              - - customField
+                - name
+              - "VIP"
+            values:
+              $:
+                field: value
+      where:
+        - - cf
+          - values
+        - =
+        - "Yes"
+    nodes:
+      id: {}
+      name: {}
+```
+
+### 6. Locations and nested filters
+Create location and find others tied to the same account:
+```yaml
+createLocation:
+  $:
+    accountId: "ACCOUNT_ID"
+    name: Test Location
+    address: "123 Main St"
+  createdLocation:
+    id: {}
+    name: {}
+
+organization:
+  $: {}
+  id: {}
+  locations:
+    $:
+      where:
+        - - account
+          - name
+        - Test Name
+    nodes:
+      id: {}
+      name: {}
+      account:
+        id: {}
+        name: {}
+```
+
+### 7. Documents, jobs, and aggregates
+- Get a job's documents grouped by type/status and sums:
+```yaml
+job:
+  $:
+    id: "JOB_ID"
+  documents:
+    $:
+      where:
+        - - type
+          - in
+          - - customerInvoice
+            - customerOrder
+      group:
+        by:
+          - type
+          - status
+        aggs:
+          amountPaid:
+            sum: amountPaid
+          priceWithTax:
+            sum: priceWithTax
+    withValues: {}
+```
+- Get document PDF token (append to `https://api.jobtread.com/t/{{token}}`):
+```yaml
+pdfToken:
+  _: signQuery
+  $:
+    query:
+      pdf:
+        $:
+          id: "DOCUMENT_ID"
+```
+
+### 8. Custom fields
+- Read a record's custom field values (limit 25 per request):
+```yaml
+account:
+  $:
+    id: "ACCOUNT_ID"
+  customFieldValues:
+    $:
+      size: 25
+    nodes:
+      id: {}
+      value: {}
+      customField:
+        id: {}
+```
+- Update a custom field via `customFieldValues` map:
+```yaml
+updateAccount:
+  $:
+    id: "ACCOUNT_ID"
+    customFieldValues:
+      "CUSTOM_FIELD_ID": "New value"
+  account:
+    id: {}
+```
+
+### 9. Webhooks
+- Use the JobTread UI to create a webhook (Webhooks page) and copy its ID.
+- Manage them via the API: list `webhook(id: "ID")` or `deleteWebhook` to cancel.
+- Example create query:
+```yaml
+createWebhook:
+  $:
+    organizationId: "ORG_ID"
+    url: "https://your-endpoint/hooks/jobtread"
+    eventTypes:
+      - jobCreated
+      - documentUploaded
+  createdWebhook:
+    id: {}
+    url: {}
+```
+
+## Using This Skill with OpenClaw
+- Use `curl` or your preferred HTTP client from OpenClaw's `exec` tool.
+- Build the JSON payload as shown (always include the grant key inside `$`).
+- You can also wrap the payload in shell variables or helper scripts for portability.
+- Save reusable queries in the skill file or separate scripts so Claude or you can call them by name ("run job summary", "create customer", etc.).
+- Document each automation in the JobTread vault so you can copy/paste from future sessions without digging through logs.
+
+## Automation Ideas
+1. **Nightly job summary:** Query each open job, sum approved customer orders, and store results in Obsidian (or send via WhatsApp).
+2. **Webhook monitor:** Automatically spin up a webhook for file uploads and forward notifications to your Slack/WhatsApp via a small server.
+3. **Batch account creation:** Feed a CSV of customers/vendors and run `createAccount` for each with the same grant key.
+4. **Document check-ins:** Query documents with `status: pending` and send you a summary each morning.
+
+## Troubleshooting & Tips
+- **Rate limits:** Grant keys have a throughput cap. If you hit rate limits, add `time.sleep` between requests or batch fewer objects.
+- **Missing IDs:** The API complains `id field required` when you forget to request `id`. Always include it when you plan to mutate the record later.
+- **Grant expiration:** If a request returns `invalid key`, rotate the grant and update `~/.config/jobtread/grant_key`.
+- **Webhooks:** Keep a log of webhook IDs so you can disable or reconfigure them later.
+- **Signed tokens:** Use `signQuery` when you need temporary access to document PDFs without storing raw document IDs.
+
+---
+
+## 中文说明
+
+# 技能：通过 Pave Query API 使用 JobTread
+
+## 概述
+此技能让你能够通过 openclaw，使用位于 `https://api.jobtread.com/pave` 的基于 Pave 的 API 完整地操作 JobTread。每个请求都是一个带有 `query` 对象的单次 POST，该对象镜像了 GraphQL 风格的表达式，由你决定想要返回哪些字段。有了正确的授权密钥，你可以创建和管理账户（客户/供应商）、工作（jobs）、文档、任务、地点、自定义字段、文档，甚至订阅 webhook 以获取实时更新。
+
+## 设置与凭据
+1. **创建授权（grant）：** 登录 https://app.jobtread.com/grants 并为自动化创建一个新的授权。复制一次性的 `grantKey`（它以 `grant_` 开头，且只会显示一次）。
+2. **在本地存储密钥：** 使用一个安全的文件，例如 `~/.config/jobtread/grant_key`。示例：
+   ```bash
+   mkdir -p ~/.config/jobtread
+   echo "grant_xxx" > ~/.config/jobtread/grant_key
+   chmod 600 ~/.config/jobtread/grant_key
+   ```
+3. **保持密钥有效：** JobTread 会在 3 个月无活动后使密钥过期，因此请安排一个提醒（cron/心跳）以在过期前轮换或重新使用该授权。
+4. **可选的 webhook 密钥：** 如果你计划接收 webhook，请记下你的端点 URL，并将 webhook ID 保存在同一文件夹中，以便日后禁用或检查它。
+
+## 身份验证
+- 每个发往 `/pave` 的 POST 都必须在 `query.$.grantKey` 下包含授权密钥。示例载荷：
+  ```json
+  {
+    "query": {
+      "$": { "grantKey": "grant_xxx" },
+      "currentGrant": { "id": {}, "user": { "name": {} } }
+    }
+  }
+  ```
+- 当你需要抑制通知或限定结果范围时，也可以在 `$` 内设置 `notify`、`timeZone` 或 `viaUserId`。
+- 对于签名查询（PDF 令牌、预签名数据），调用 `pdfToken: { _: signQuery, $: { query: {...} } }`，并将令牌追加到 `https://api.jobtread.com/t/`。
+
+## API 基础与请求流程
+- 所有请求都发往 `POST https://api.jobtread.com/pave`，并带有 `Content-Type: application/json`。
+- 结构：
+  ```json
+  {
+    "query": {
+      "$": { "grantKey": "grant_xxx" },  
+      "operation": {
+        "$": { ...inputs... },
+        "field": { ...fields... }
+      }
+    }
+  }
+  ```
+- 你请求的字段（`id`、`name` 等）决定了 JobTread 返回什么。当你计划日后引用该对象时，请始终包含 `id`。
+- 响应中的 `_type` 告诉你该节点的 schema。
+
+## 常见模式与示例
+### 1. 发现你的组织 ID
+```yaml
+currentGrant:
+  user:
+    memberships:
+      nodes:
+        organization:
+          id: {}
+          name: {}
+```
+在后续任何查询中使用返回的 `organization.id`。
+
+### 2. 创建客户/供应商
+- **客户**
+```yaml
+createAccount:
+  $:
+    name: "Test Customer"
+    type: customer
+    organizationId: "ORG_ID"
+  createdAccount:
+    id: {}
+    name: {}
+    type: {}
+```
+- **供应商**（与上面相同，但使用 `type: vendor`）。
+
+### 3. 读取或更新账户
+- **读取账户**，提供 `id` 并请求字段：
+```yaml
+account:
+  $:
+    id: "ACCOUNT_ID"
+  id: {}
+  name: {}
+  isTaxable: {}
+```
+- **更新**，如有需要则包含 `customFieldValues`：
+```yaml
+updateAccount:
+  $:
+    id: "ACCOUNT_ID"
+    isTaxable: false
+  account:
+    id: {}
+    isTaxable: {}
+```
+
+### 4. 使用分页、排序和过滤查询账户列表
+```yaml
+organization:
+  $: {}
+  id: {}
+  accounts:
+    $:
+      size: 5
+      page: "1"
+      sortBy:
+        - field: type
+          order: desc
+      where:
+        and:
+          - - type
+            - =
+            - customer
+          - - name
+            - =
+            - "Sebas Clients"
+    nextPage: {}
+    nodes:
+      id: {}
+      name: {}
+      type: {}
+```
+
+### 5. 将 `where` 与 `or`、嵌套字段或自定义字段一起使用
+- 按自定义字段名称查找账户：
+```yaml
+organization:
+  $: {}
+  id: {}
+  contacts:
+    $:
+      with:
+        cf:
+          _: customFieldValues
+          $:
+            where:
+              - - customField
+                - name
+              - "VIP"
+            values:
+              $:
+                field: value
+      where:
+        - - cf
+          - values
+        - =
+        - "Yes"
+    nodes:
+      id: {}
+      name: {}
+```
+
+### 6. 地点与嵌套过滤
+创建地点并查找绑定到同一账户的其他地点：
+```yaml
+createLocation:
+  $:
+    accountId: "ACCOUNT_ID"
+    name: Test Location
+    address: "123 Main St"
+  createdLocation:
+    id: {}
+    name: {}
+
+organization:
+  $: {}
+  id: {}
+  locations:
+    $:
+      where:
+        - - account
+          - name
+        - Test Name
+    nodes:
+      id: {}
+      name: {}
+      account:
+        id: {}
+        name: {}
+```
+
+### 7. 文档、工作与聚合
+- 获取某个工作的文档，并按类型/状态分组及求和：
+```yaml
+job:
+  $:
+    id: "JOB_ID"
+  documents:
+    $:
+      where:
+        - - type
+          - in
+          - - customerInvoice
+            - customerOrder
+      group:
+        by:
+          - type
+          - status
+        aggs:
+          amountPaid:
+            sum: amountPaid
+          priceWithTax:
+            sum: priceWithTax
+    withValues: {}
+```
+- 获取文档 PDF 令牌（追加到 `https://api.jobtread.com/t/{{token}}`）：
+```yaml
+pdfToken:
+  _: signQuery
+  $:
+    query:
+      pdf:
+        $:
+          id: "DOCUMENT_ID"
+```
+
+### 8. 自定义字段
+- 读取某条记录的自定义字段值（每次请求限 25 条）：
+```yaml
+account:
+  $:
+    id: "ACCOUNT_ID"
+  customFieldValues:
+    $:
+      size: 25
+    nodes:
+      id: {}
+      value: {}
+      customField:
+        id: {}
+```
+- 通过 `customFieldValues` 映射更新自定义字段：
+```yaml
+updateAccount:
+  $:
+    id: "ACCOUNT_ID"
+    customFieldValues:
+      "CUSTOM_FIELD_ID": "New value"
+  account:
+    id: {}
+```
+
+### 9. Webhooks
+- 使用 JobTread UI 创建 webhook（Webhooks 页面）并复制其 ID。
+- 通过 API 管理它们：用 `webhook(id: "ID")` 列出，或用 `deleteWebhook` 取消。
+- 创建查询示例：
+```yaml
+createWebhook:
+  $:
+    organizationId: "ORG_ID"
+    url: "https://your-endpoint/hooks/jobtread"
+    eventTypes:
+      - jobCreated
+      - documentUploaded
+  createdWebhook:
+    id: {}
+    url: {}
+```
+
+## 在 OpenClaw 中使用此技能
+- 通过 OpenClaw 的 `exec` 工具使用 `curl` 或你偏好的 HTTP 客户端。
+- 按所示构建 JSON 载荷（始终在 `$` 内包含授权密钥）。
+- 你也可以将载荷包装在 shell 变量或辅助脚本中以提高可移植性。
+- 将可复用的查询保存在技能文件或单独的脚本中，以便 Claude 或你可以按名称调用它们（"run job summary"、"create customer" 等）。
+- 在 JobTread vault 中记录每个自动化，这样你就可以在未来的会话中直接复制/粘贴，无需翻查日志。
+
+## 自动化思路
+1. **每夜工作摘要：** 查询每个进行中的工作，汇总已批准的客户订单，并将结果存储到 Obsidian（或通过 WhatsApp 发送）。
+2. **Webhook 监控：** 自动为文件上传启动一个 webhook，并通过一个小型服务器将通知转发到你的 Slack/WhatsApp。
+3. **批量创建账户：** 输入一份客户/供应商的 CSV，并用同一个授权密钥为每条记录运行 `createAccount`。
+4. **文档签到：** 查询 `status: pending` 的文档，并每天早上给你发送一份摘要。
+
+## 故障排查与提示
+- **速率限制：** 授权密钥有吞吐量上限。如果你遇到速率限制，请在请求之间添加 `time.sleep` 或减少批量处理的对象数量。
+- **缺失 ID：** 当你忘记请求 `id` 时，API 会报错 `id field required`。如果你计划日后修改该记录，请始终包含它。
+- **授权过期：** 如果某个请求返回 `invalid key`，请轮换授权并更新 `~/.config/jobtread/grant_key`。
+- **Webhooks：** 保留一份 webhook ID 的日志，以便日后禁用或重新配置它们。
+- **签名令牌：** 当你需要临时访问文档 PDF 而不存储原始文档 ID 时，请使用 `signQuery`。
