@@ -115,6 +115,10 @@ export class Skill {
   @Prop({ default: 'n/a', index: true })
   reviewStatus: string;
 
+  /** 该 skill 专属绑定的角色 skillId（可选；普通 skill 为 null） */
+  @Prop({ trim: true, index: true, sparse: true })
+  roleId?: string;
+
   @Prop({ trim: true })
   reviewNote?: string;
 

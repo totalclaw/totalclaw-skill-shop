@@ -20,6 +20,7 @@ const activation_codes_module_1 = require("./activation-codes/activation-codes.m
 const internal_pay_module_1 = require("./internal-pay/internal-pay.module");
 const developer_module_1 = require("./developer/developer.module");
 const admin_module_1 = require("./admin/admin.module");
+const qiye_module_1 = require("./qiye/qiye.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -38,6 +39,7 @@ exports.AppModule = AppModule = __decorate([
             internal_pay_module_1.InternalPayModule,
             developer_module_1.DeveloperModule,
             admin_module_1.AdminModule,
+            qiye_module_1.QiyeModule,
         ],
     })
 ], AppModule);

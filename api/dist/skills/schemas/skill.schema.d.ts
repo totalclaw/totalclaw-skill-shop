@@ -35,6 +35,7 @@ export declare class Skill {
     };
     developerId?: Types.ObjectId;
     reviewStatus: string;
+    roleId?: string;
     reviewNote?: string;
     closedSource: boolean;
     stats: {

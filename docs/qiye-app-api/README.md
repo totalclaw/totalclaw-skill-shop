@@ -1,149 +1,238 @@
-# 泰途AI Skill 市场 · 对接文档（供 totalclaw-qiye-app 拉取技能与员工）
+# 泰途AI Skill 市场 · qiye-app 对接文档
 
-本文档说明 **qiye-app（桌面端/CLI）** 如何从 Skill 市场拉取「技能(skill)」与「AI 员工(role)」，提供 **接口(REST API) / 命令(cURL) / CLI** 三种模式。
+本文档说明 **qiye-app（桌面端/CLI）** 如何从 Skill 市场拉取「技能(skill)」与「AI 员工(role)」。
 
 - 市场前台：`http://localhost:3090`（线上 `https://<你的域名>`）
 - API 基址：`{BASE}/api`，本文以 `BASE=http://localhost:3090` 为例
-- 数据规模（实时，仅供参考）：技能 **117,277** · AI 员工 **27,397** · 员工分类 **127**
-- 数据模型：同一集合用 `kind` 区分——`kind` 缺省/非 `role` = 技能；`kind=role` = AI 员工
+- 数据规模（实时，仅供参考）：技能 **252,975** · AI 员工 **27,381**
 - 鉴权：公开浏览/免费内容无需登录；收费/闭源内容需 `Authorization: Bearer <token>` 且已购买
-
-> ⚠️ 收费 skill 为防复刻**不提供裸文件下载**，仅在已购+登录态下通过 `/api/entitlements/content/:id` 只读获取（正文带买家专属水印）。免费 skill 可直接下载。详见「四、收费内容」。
 
 ---
 
-## 一、接口模式（REST API）
+## 一、qiye-app 专用接口（推荐）
 
-所有列表/详情接口返回 JSON。`skillId` 在路径中需 **URL 编码**（含 `:`、`~` 等）。
+> **新增专用路由 `/api/qiye/*`**，字段更清晰，默认 20 条分页，含 `isFree` 布尔标识和 `roleId`。
 
-### 1. 列表 / 搜索
+### 1. 技能列表
 
 ```
-GET {BASE}/api/skills
+GET {BASE}/api/qiye/skills
 ```
 
-| 参数 | 说明 | 示例 |
-|---|---|---|
-| `kind` | `role` 取 AI 员工；缺省取技能 | `kind=role` |
-| `q` | 关键词（名称/描述） | `q=渗透测试` |
-| `category` | 单分类 | `category=工程研发` |
-| `categories` | 多分类（逗号，命中任一） | `categories=后端与架构,前端与移动端` |
-| `source` | 来源 | `source=totalclaw` |
-| `tag` | 标签（单个） | `tag=岗位技能` |
-| `listingType` | `free`/`paid` | `listingType=free` |
-| `sort` | `latest`/`downloads`/`sales`/`rating` | `sort=downloads` |
-| `page` / `pageSize` | 分页（pageSize ≤ 100） | `page=1&pageSize=50` |
+**查询参数**
 
-返回：
+| 参数 | 类型 | 说明 | 示例 |
+|---|---|---|---|
+| `q` | string | 技能名称模糊搜索（name / displayName / descriptionZh） | `q=渗透测试` |
+| `source` | string | 来源过滤（见下方来源列表） | `source=github` |
+| `listingType` | `free` \| `paid` | 收费类型过滤 | `listingType=free` |
+| `page` | number | 页码，默认 1 | `page=2` |
+| `pageSize` | number | 每页条数，默认 **20**，最大 100 | `pageSize=20` |
+
+**支持的来源（source）**
+
+| 值 | 说明 |
+|---|---|
+| `github` | GitHub 社区 |
+| `tencent` | 腾讯开放平台 |
+| `openclaw` | OpenClaw 社区 |
+| `hermes` | Hermes 平台 |
+| `totalclaw` | 泰途 AI（含官方+社区） |
+| `totalclaw-community` | 泰途 AI 社区免费技能（虚拟来源） |
+| `clawskills` | ClawSkills 平台 |
+| `skilldb` | SkillDB 平台 |
+
+**响应示例**
 
 ```json
-{ "items": [ { "skillId": "...", "name": "...", "displayName": "...",
-  "descriptionZh": "...", "category": "...", "source": "...", "kind": "skill",
-  "listingType": "free", "pricing": {"price":0}, "stats": {"downloads":0} } ],
-  "total": 117277, "page": 1, "pageSize": 24, "totalPages": 4887 }
+{
+  "items": [
+    {
+      "skillId": "github:owner/example-skill",
+      "name": "example-skill",
+      "displayName": "示例技能",
+      "source": "github",
+      "kind": "skill",
+      "category": "工程研发",
+      "description": "技能的中文描述",
+      "isFree": true,
+      "listingType": "free",
+      "pricing": { "model": "free", "price": 0, "currency": "CNY" },
+      "roleId": null,
+      "stats": { "downloads": 100 }
+    },
+    {
+      "skillId": "totalclaw:roleskill~some-paid-skill",
+      "name": "高级分析技能",
+      "displayName": "高级分析技能",
+      "source": "totalclaw",
+      "kind": "skill",
+      "category": "数据与算法",
+      "description": "...",
+      "isFree": false,
+      "listingType": "paid",
+      "pricing": { "model": "paid", "price": 9, "currency": "CNY" },
+      "roleId": null,
+      "stats": { "downloads": 0 }
+    }
+  ],
+  "total": 252975,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 12649
+}
 ```
 
-### 2. 分类 / 来源聚合
+**响应字段说明**
+
+| 字段 | 说明 |
+|---|---|
+| `skillId` | 技能全局唯一 ID（格式：`source:owner/slug`） |
+| `name` | 技能名称（英文/原始） |
+| `displayName` | 展示名称（中文，若有） |
+| `source` | 来源标识 |
+| `kind` | 固定为 `"skill"` |
+| `category` | 分类 |
+| `description` | 描述（优先中文） |
+| `isFree` | **布尔值**：`true` = 免费，`false` = 收费 |
+| `listingType` | `"free"` \| `"paid"` |
+| `pricing.price` | 价格（CNY，免费时为 0） |
+| `roleId` | 绑定角色的 skillId；未绑定时为 `null` |
+| `stats.downloads` | 下载次数 |
+
+---
+
+### 2. 角色（AI 员工）列表
 
 ```
-GET {BASE}/api/skills/categories            # 技能分类（含计数）
-GET {BASE}/api/skills/categories?kind=role  # AI 员工分类（含计数）
-GET {BASE}/api/skills/categories?source=github   # 某来源下的分类
-GET {BASE}/api/skills/sources-summary       # 各来源 skill 数
+GET {BASE}/api/qiye/roles
 ```
 
-### 3. 详情
+**查询参数**
+
+| 参数 | 类型 | 说明 | 示例 |
+|---|---|---|---|
+| `q` | string | 角色名称模糊搜索（name / displayName / descriptionZh） | `q=产品经理` |
+| `page` | number | 页码，默认 1 | `page=1` |
+| `pageSize` | number | 每页条数，默认 **20**，最大 100 | `pageSize=20` |
+
+**响应示例**
+
+```json
+{
+  "items": [
+    {
+      "roleId": "role:totalclaw/product-manager",
+      "skillId": "role:totalclaw/product-manager",
+      "name": "产品经理",
+      "displayName": "产品经理",
+      "source": "totalclaw",
+      "kind": "role",
+      "category": "互联网研发",
+      "description": "负责产品规划与迭代管理",
+      "emoji": "📊",
+      "color": "#4F46E5",
+      "isFree": true,
+      "listingType": "free",
+      "pricing": { "model": "free", "price": 0, "currency": "CNY" },
+      "stats": { "downloads": 50 }
+    }
+  ],
+  "total": 27381,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 1370
+}
+```
+
+**响应字段说明（角色专有字段）**
+
+| 字段 | 说明 |
+|---|---|
+| `roleId` | 角色唯一 ID（= 角色的 `skillId`，`role:` 前缀） |
+| `skillId` | 同 `roleId` |
+| `kind` | 固定为 `"role"` |
+| `emoji` | 角色图标 emoji（可能为 `null`） |
+| `color` | 角色主题色（可能为 `null`） |
+| `isFree` | `true` = 免费角色，`false` = 收费角色 |
+
+---
+
+### 3. cURL 示例
+
+```bash
+BASE="http://localhost:3090"
+
+# 获取免费技能（来自 GitHub，第 1 页 20 条）
+curl -fsS "$BASE/api/qiye/skills?source=github&listingType=free"
+
+# 搜索「渗透测试」相关技能
+curl -fsS "$BASE/api/qiye/skills?q=%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95"
+
+# 获取角色列表第 2 页
+curl -fsS "$BASE/api/qiye/roles?page=2"
+
+# 搜索「产品经理」角色
+curl -fsS "$BASE/api/qiye/roles?q=%E4%BA%A7%E5%93%81%E7%BB%8F%E7%90%86"
+```
+
+---
+
+## 二、通用接口（原有，向后兼容）
+
+原有的 `/api/skills` 接口仍然可用，支持更多过滤参数（分类、标签、排序等）。适合前台展示场景。
 
 ```
-GET {BASE}/api/skills/{urlencoded-skillId}
+GET {BASE}/api/skills              # 技能列表（kind 默认 skill）
+GET {BASE}/api/skills?kind=role    # 角色列表
 ```
-返回单个技能/员工的元数据。**闭源/收费**的 `contentMd` 会被裁剪（需走收费内容接口）。
 
-### 4. 拉取正文 / 下载
+详见原版文档中的完整参数说明。
+
+---
+
+## 三、下载 / 内容获取
 
 | 场景 | 接口 | 鉴权 |
 |---|---|---|
-| 免费技能/员工 下载 SKILL.md | `GET {BASE}/api/skills/{id}/file` | 无需 |
+| 免费技能/角色 下载 SKILL.md | `GET {BASE}/api/skills/{urlencoded-skillId}/file` | 无需 |
 | 收费/闭源 正文（只读，带水印） | `GET {BASE}/api/entitlements/content/{id}` | Bearer + 已购 |
-| 下载计数 +1（可选埋点） | `POST {BASE}/api/skills/{id}/download` | 无需 |
 
----
-
-## 二、命令模式（cURL）
-
-### 拉员工/技能列表（取前 50 个研发员工）
+> 收费 skill 的 `skillId` 在路径中需 **URL 编码**（`encodeURIComponent`），因为含 `:` `~` `/` 等字符。
 
 ```bash
-curl -fsS "http://localhost:3090/api/skills?kind=role&category=互联网研发&pageSize=50"
-```
-
-### 按关键词搜技能
-
-```bash
-curl -fsS "http://localhost:3090/api/skills?q=Kubernetes&listingType=free&sort=downloads"
-```
-
-### 下载一个免费 SKILL.md（id 需 URL 编码）
-
-```bash
-SID='totalclaw:roleskill~academic-anthropologist-s18xnt02'
+# 下载免费技能（Python 编码 skillId）
+SID='totalclaw:roleskill~some-free-skill'
 ENC=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$SID")
-curl -fsSL "http://localhost:3090/api/skills/$ENC/file" -o skill.md
-```
-
-### 拉收费/闭源正文（需登录拿 token + 已购）
-
-```bash
-# 1) 登录拿 token
-TOKEN=$(curl -fsS -X POST http://localhost:3090/api/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"identifier":"<用户名/手机号/邮箱>","password":"<密码>"}' \
-  | python3 -c "import json,sys;print(json.load(sys.stdin)['accessToken'])")
-
-# 2) 拉正文（已购才放行；返回 JSON，contentMd 含买家水印）
-curl -fsS "http://localhost:3090/api/entitlements/content/$ENC" \
-  -H "Authorization: Bearer $TOKEN"
+curl -fsSL "$BASE/api/skills/$ENC/file" -o skill.md
 ```
 
 ---
 
-## 三、CLI 模式（TotalClaw CLI）
+## 四、收费内容约定
 
-> CLI 把上面的接口封装成命令，自动处理鉴权 token、URL 编码与落地。qiye-app 内置/调用该 CLI 完成安装。
-
-```bash
-# 安装一个技能或员工（按 skillId）
-totalclaw install totalclaw:roleskill~academic-anthropologist-s18xnt02
-
-# 登录（收费内容需要）
-totalclaw login
-
-# 搜索
-totalclaw search "渗透测试" --kind role
-```
-
-收费 skill 通过 CLI/官方运行时**在运行时内使用**，不导出明文文件（防转售）。
+- **免费**（`isFree: true`）：直接下载 SKILL.md，无需登录。
+- **收费**（`isFree: false`）：不提供裸文件下载，需要：
+  1. 用户登录获取 token（`POST /api/auth/login`）
+  2. 已购买该 skill（下单 `POST /api/orders`）
+  3. 通过 `/api/entitlements/content/{id}` 只读获取（正文注入**买家专属隐形水印**，泄露可溯源）
 
 ---
 
-## 四、收费内容与防复刻约定
+## 五、roleId 与 skill-role 绑定
 
-- 免费内容：`/api/skills/{id}/file` 直接下载，无需登录。
-- 收费/闭源内容：**不提供裸文件下载**（`/api/entitlements/download` 对收费返回 403）。只能：
-  1. 已购+登录 → `/api/entitlements/content/{id}` 只读获取（正文注入**买家专属隐形水印**，泄露可溯源）；
-  2. 或经官方 TotalClaw 运行时在运行时内调用（不落明文）。
-- qiye-app 对接收费内容时，请在已登录态携带用户 token；展示/缓存到本地时**保留水印**，不要二次导出明文供外部分发。
+- 每个技能（`kind=skill`）都有一个 `roleId` 字段。
+- 当前大多数技能的 `roleId` 为 `null`（通用技能，未绑定角色）。
+- 若 `roleId` 不为 `null`，表示该技能专属于某角色，`roleId` 值即为目标角色的 `skillId`（`role:` 前缀）。
+- 对于角色列表（`/api/qiye/roles`），每条记录的 `roleId` = 该角色自身的 `skillId`。
 
 ---
 
-## 五、qiye-app 接入建议（拉取流程）
+## 六、错误码
 
-```
-列表/搜索  GET /api/skills?kind=role|skill&...     → 选中 skillId
-   │
-   ├─ 免费：GET /api/skills/{id}/file              → 落地 SKILL.md
-   └─ 收费：登录 → 校验已购 GET /api/entitlements/check/{id}
-            → GET /api/entitlements/content/{id}   → 运行时内使用（带水印）
-```
-
-字段约定、错误码（401 未登录 / 403 未购或收费不可下载 / 404 不存在）与分页同上。
+| 状态码 | 含义 |
+|---|---|
+| 400 | 参数校验失败 |
+| 401 | 未登录（需要 Bearer token） |
+| 403 | 无权限或收费内容未购买 |
+| 404 | 资源不存在 |

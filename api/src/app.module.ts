@@ -11,6 +11,7 @@ import { ActivationCodesModule } from './activation-codes/activation-codes.modul
 import { InternalPayModule } from './internal-pay/internal-pay.module';
 import { DeveloperModule } from './developer/developer.module';
 import { AdminModule } from './admin/admin.module';
+import { QiyeModule } from './qiye/qiye.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AdminModule } from './admin/admin.module';
     InternalPayModule,
     DeveloperModule,
     AdminModule,
+    QiyeModule,
   ],
 })
 export class AppModule {}

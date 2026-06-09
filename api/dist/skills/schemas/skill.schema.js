@@ -143,6 +143,10 @@ __decorate([
     __metadata("design:type", String)
 ], Skill.prototype, "reviewStatus", void 0);
 __decorate([
+    (0, mongoose_1.Prop)({ trim: true, index: true, sparse: true }),
+    __metadata("design:type", String)
+], Skill.prototype, "roleId", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ trim: true }),
     __metadata("design:type", String)
 ], Skill.prototype, "reviewNote", void 0);
