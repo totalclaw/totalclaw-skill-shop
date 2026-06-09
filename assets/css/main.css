@@ -40,12 +40,21 @@
   --shadow-nav: 0 4px 24px rgba(15, 23, 42, 0.08);
   --glow: 0 16px 48px rgba(12, 110, 208, 0.1);
   --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --font-display: "Newsreader", "Noto Serif SC", Georgia, serif;
-  --font-body: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-body: "Noto Sans SC", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+*, *::before, *::after { box-sizing: border-box; }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 7.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .bg-fx::after { animation: none !important; opacity: .45 !important; }
+}
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -53,32 +62,44 @@ body {
   color: var(--text);
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
-  /* 吸底：内容不足一屏时把 footer 压到视口底部（main 撑满剩余高度） */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
-/* 主内容撑开剩余高度；footer 不收缩。.bg-fx 为 fixed，不参与 flex 流。 */
 body > main { flex: 1 0 auto; }
 .site-footer { flex-shrink: 0; }
 
-/* 背景：浅色分层渐变 + 细网格（替代旧暗色科技层） */
+/* 中文排版优化：避免段落末尾孤字、标题折行不均 */
+p, li, dd, figcaption { text-wrap: pretty; }
+h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
+
+/* 背景：浅色分层渐变 + 噪声纹理（对齐 totalclaw-web） */
 .bg-fx {
   position: fixed; inset: 0; z-index: -2; pointer-events: none;
   background:
-    radial-gradient(ellipse 110% 75% at 12% -10%, rgba(6, 52, 92, 0.1), transparent 52%),
+    radial-gradient(ellipse 110% 75% at 12% -10%, rgba(6, 52, 92, 0.12), transparent 52%),
     radial-gradient(ellipse 85% 50% at 92% 8%, rgba(12, 110, 208, 0.1), transparent 48%),
     radial-gradient(ellipse 70% 45% at 50% 100%, rgba(13, 148, 136, 0.06), transparent 55%),
     linear-gradient(180deg, #f2f6fb 0%, var(--bg0) 42%, #dfe8f2 100%);
 }
 .bg-fx::after {
-  content: ""; position: absolute; inset: 0; opacity: .5;
-  background-image:
-    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
-  background-size: 46px 46px;
-  -webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000 30%, transparent 82%);
-          mask-image: radial-gradient(ellipse at 50% 0%, #000 30%, transparent 82%);
+  content: ""; position: absolute; inset: 0; opacity: .45;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  animation: grainBreath 16s ease-in-out infinite alternate;
+}
+@keyframes grainBreath {
+  from { opacity: 0.38; }
+  to { opacity: 0.52; }
+}
+/* 垂直列线（24 列，顶部 90% 渐隐）*/
+.grid-lines {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: linear-gradient(90deg, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
+  background-size: calc(100% / 24) 100%;
+  opacity: .55;
+  -webkit-mask-image: linear-gradient(180deg, black 0%, transparent 90%);
+          mask-image: linear-gradient(180deg, black 0%, transparent 90%);
 }
 
 a { color: var(--accent); text-decoration: none; transition: color .15s var(--ease-out); }
@@ -292,7 +313,7 @@ main h2::before {
 .skill-content {
   background: var(--bg1); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px;
   overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-size: 13px; color: #1e293b; max-height: 620px;
-  font-family: "SF Mono", "JetBrains Mono", Menlo, monospace; box-shadow: var(--shadow-sm);
+  font-family: var(--font-mono); box-shadow: var(--shadow-sm);
 }
 
 /* ===== Install panel ===== */
@@ -302,7 +323,7 @@ main h2::before {
 .cmd-label { font-size: 13px; color: var(--text); margin-bottom: 6px; font-weight: 600; }
 .cmd-label i { font-style: normal; color: var(--faint); font-weight: 400; margin-left: 8px; font-size: 12px; }
 .cmd-box { display: flex; align-items: stretch; gap: 0; background: var(--nav-blue); border: 1px solid var(--nav-blue); border-radius: var(--radius-sm); overflow: hidden; }
-.cmd-box code { flex: 1; padding: 12px 15px; font-family: "SF Mono", "JetBrains Mono", Menlo, monospace; font-size: 13px; color: #d6e6ff; white-space: pre-wrap; word-break: break-all; }
+.cmd-box code { flex: 1; padding: 12px 15px; font-family: var(--font-mono); font-size: 13px; color: #d6e6ff; white-space: pre-wrap; word-break: break-all; }
 .copy-btn { border: 0; border-left: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.08); color: #d6e6ff; padding: 0 16px; cursor: pointer; font-size: 13px; white-space: nowrap; }
 .copy-btn:hover { background: rgba(255, 255, 255, 0.18); }
 .copy-btn.copied { color: #5eead4; }

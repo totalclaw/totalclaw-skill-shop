@@ -71,10 +71,8 @@ function renderPage(o) {
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- 中文字体（Noto Sans/Serif SC 体积达数 MB）改为非阻塞加载：preload+onload 切 stylesheet，
-     首屏先用系统字体立即出文字（display=swap），字体到位后无缝替换，避免阻塞首屏渲染。 -->
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap"></noscript>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(desc)}">
 <meta property="og:url" content="${escapeHtml(canonical)}">
@@ -85,6 +83,7 @@ ${jsonLd}
 </head>
 <body>
 <div class="bg-fx" aria-hidden="true"></div>
+<div class="grid-lines" aria-hidden="true"></div>
 ${o.body}
 <script src="${assetUrl('/assets/js/app.js')}" defer></script>
 ${extraScripts}
