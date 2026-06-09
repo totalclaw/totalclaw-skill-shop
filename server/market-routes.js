@@ -86,12 +86,25 @@ ${footer()}`;
         page: req.query.page || 1,
         pageSize: 24,
       };
-      const [{ data }, cats, srcSummary] = await Promise.all([
+      // 只有 source=totalclaw 时才展示免费/收费 tab（其他来源全为免费，无需区分）
+      const showListingTabs = req.query.source === 'totalclaw';
+      const apiCalls = [
         api().get('/skills', { params }),
         // 分类随来源联动：选了来源 → 只取该来源下的分类
         api().get('/skills/categories', { params: { source: req.query.source } }).catch(() => ({ data: [] })),
         api().get('/skills/sources-summary').catch(() => ({ data: [] })),
-      ]);
+      ];
+      if (showListingTabs) {
+        const countBase = { source: 'totalclaw', category: req.query.category, q: req.query.q, tag: req.query.tag, pageSize: 1 };
+        apiCalls.push(
+          api().get('/skills', { params: { ...countBase, listingType: 'free' } }).catch(() => ({ data: { total: 0 } })),
+          api().get('/skills', { params: { ...countBase, listingType: 'paid' } }).catch(() => ({ data: { total: 0 } })),
+        );
+      }
+      const results = await Promise.all(apiCalls);
+      const [{ data }, cats, srcSummary] = results;
+      const freeCount = showListingTabs ? (results[3]?.data?.total ?? 0) : null;
+      const paidCount = showListingTabs ? (results[4]?.data?.total ?? 0) : null;
       const items = data.items || [];
       // 各来源 skill 数（用于来源筛选条显示计数）
       const srcCount = {};
@@ -117,7 +130,10 @@ ${footer()}`;
         return s ? '?' + s : '';
       };
       const ltVal = req.query.listingType || '';
-      const ltTab = (v, label) => `<a class="src-tab ${ltVal === v ? 'active' : ''}" href="/skills${qsFrom({ listingType: v || undefined })}">${label}</a>`;
+      const ltTab = (v, label, count) => {
+        const num = count != null ? ` (${count.toLocaleString('zh-CN')})` : '';
+        return `<a class="src-tab ${ltVal === v ? 'active' : ''}" href="/skills${qsFrom({ listingType: v || undefined })}">${label}${num}</a>`;
+      };
       const catVal = req.query.category || '';
       const catTab = (c, label) => `<a class="src-tab ${catVal === c ? 'active' : ''}" href="/skills${qsFrom({ category: c || undefined })}">${escapeHtml(label)}</a>`;
       const body = `${header('skills')}
@@ -128,7 +144,7 @@ ${footer()}`;
     <input type="search" name="q" value="${escapeHtml(req.query.q || '')}" placeholder="搜索 skill 名称 / 关键词…" aria-label="搜索">
     <button type="submit">搜索</button>
   </form>
-  <div class="src-filter">${ltTab('', '全部')}${ltTab('free', '免费')}${ltTab('paid', '收费')}</div>
+  ${showListingTabs ? `<div class="src-filter">${ltTab('', '全部')}${ltTab('free', '免费', freeCount)}${ltTab('paid', '收费', paidCount)}</div>` : ''}
   ${sourceFilter(req.query.source, req.query, srcCount, srcTotal)}
   <div class="src-filter cat-shortcuts">${catTab('', '全部分类')}${shownCats.map((c) => catTab(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
   ${moreCats.length ? `<details class="cat-more"${moreCats.some((c) => (c._id || 'other') === catVal) ? ' open' : ''}>
