@@ -144,8 +144,8 @@ ${footer()}`;
     <input type="search" name="q" value="${escapeHtml(req.query.q || '')}" placeholder="搜索 skill 名称 / 关键词…" aria-label="搜索">
     <button type="submit">搜索</button>
   </form>
-  ${showListingTabs ? `<div class="src-filter">${ltTab('', '全部')}${ltTab('free', '免费', freeCount)}${ltTab('paid', '收费', paidCount)}</div>` : ''}
   ${sourceFilter(req.query.source, req.query, srcCount, srcTotal)}
+  ${showListingTabs ? `<div class="src-filter">${ltTab('', '全部')}${ltTab('free', '免费', freeCount)}${ltTab('paid', '收费', paidCount)}</div>` : ''}
   <div class="src-filter cat-shortcuts">${catTab('', '全部分类')}${shownCats.map((c) => catTab(c._id || 'other', `${catLabel(c._id)} (${c.count})`)).join('')}</div>
   ${moreCats.length ? `<details class="cat-more"${moreCats.some((c) => (c._id || 'other') === catVal) ? ' open' : ''}>
     <summary>更多分类（${moreCats.length}）</summary>
