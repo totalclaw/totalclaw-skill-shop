@@ -5,13 +5,20 @@
 #   SEED_FORCE_DOWNLOAD=1 bash scripts/download-seed.sh   # 强制重新下载
 #
 # 环境变量：
-#   SEED_CDN_BASE  默认 https://cdn2.taituai.com/totalclaw-skill-shop/seed
+#   SEED_CDN_BASE  默认 https://cdn2.taituai.com/skills
+#                  分片直接位于 $SEED_CDN_BASE/skills.ndjson.gz.part-{aa,ab,ac,ad}
+#                  若 CDN 根路径有 manifest.json，会自动读取分片列表；否则使用默认四片。
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 SEED_DIR="seed/skills"
-CDN_BASE="${SEED_CDN_BASE:-https://cdn2.taituai.com/totalclaw-skill-shop/seed}"
+CDN_BASE="${SEED_CDN_BASE:-https://cdn2.taituai.com/skills}"
 MANIFEST_URL="${CDN_BASE%/}/manifest.json"
 FORCE="${SEED_FORCE_DOWNLOAD:-0}"
+# 默认四个分片名（CDN 无 manifest 时使用）
+DEFAULT_PARTS="skills.ndjson.gz.part-aa
+skills.ndjson.gz.part-ab
+skills.ndjson.gz.part-ac
+skills.ndjson.gz.part-ad"
 
 log(){ echo "==> $*"; }; die(){ echo "!! $*" >&2; exit 1; }
 
@@ -25,28 +32,35 @@ if [ "$FORCE" != "1" ] && ls "$SEED_DIR"/skills.ndjson.gz.part-* >/dev/null 2>&1
   exit 0
 fi
 
+# 尝试拉取 manifest；失败时用默认分片列表（新 CDN 无 manifest）
+PART_FILES=""
 TMP_MANIFEST="$(mktemp)"
-log "拉取 manifest: $MANIFEST_URL"
-curl -fsSL "$MANIFEST_URL" -o "$TMP_MANIFEST" || die "无法下载 manifest（确认 CDN 已上传 seed/manifest.json）"
+if curl -fsSL --max-time 10 "$MANIFEST_URL" -o "$TMP_MANIFEST" 2>/dev/null; then
+  PART_FILES="$(node -e "
+    try {
+      const m = require('${TMP_MANIFEST}');
+      if (!m.parts || !m.parts.length) process.exit(2);
+      console.log(m.parts.map(p => p.file).join('\n'));
+    } catch(e) { process.exit(2); }
+  " 2>/dev/null)" || PART_FILES=""
+  [ -n "$PART_FILES" ] && log "manifest 已读取：$(echo "$PART_FILES" | wc -l | tr -d ' ') 个分片"
+fi
+rm -f "$TMP_MANIFEST"
 
-PART_FILES="$(node -e "
-const m = require('${TMP_MANIFEST}');
-if (!m.parts || !m.parts.length) process.exit(2);
-console.log(m.parts.map(p => p.file).join('\n'));
-")" || die "manifest 无 parts 列表"
+if [ -z "$PART_FILES" ]; then
+  log "无 manifest（或解析失败），使用默认分片列表（aa ab ac ad）"
+  PART_FILES="$DEFAULT_PARTS"
+fi
 
-log "manifest 含 $(echo "$PART_FILES" | wc -l | tr -d ' ') 个分片，开始下载…"
+log "清除旧分片，从 $CDN_BASE 下载…"
 rm -f "$SEED_DIR"/skills.ndjson.gz.part-*
 
 while IFS= read -r part; do
   [ -n "$part" ] || continue
-  url="${CDN_BASE%/}/skills/${part}"
+  url="${CDN_BASE%/}/${part}"
   dest="$SEED_DIR/$part"
   log "  $part"
   curl -fsSL --retry 3 --retry-delay 2 -C - "$url" -o "$dest" || die "下载失败: $url"
 done <<< "$PART_FILES"
-
-cp "$TMP_MANIFEST" seed/manifest.json
-rm -f "$TMP_MANIFEST"
 
 log "seed 下载完成 → $SEED_DIR（$(ls "$SEED_DIR" | wc -l | tr -d ' ') 个文件）"

@@ -15,7 +15,8 @@
 #   PUBLIC_ORIGIN      对外访问根（默认 https://<NGINX_SERVER_NAME>）—— 决定页面里下载/安装命令显示的地址
 #   SSL_CERT / SSL_KEY 证书路径（默认宝塔 /www/server/panel/vhost/cert/<域名>/{fullchain,privkey}.pem）
 #   SHARED_MONGO_URI   与 web 共享的 mongo（默认 mongodb://127.0.0.1:27117/totalclaw?directConnection=true）
-#   SEED_CDN_BASE      seed CDN 根路径（默认 https://cdn2.taituai.com/totalclaw-skill-shop/seed）
+#   SEED_CDN_BASE      seed CDN 根路径（默认 https://cdn2.taituai.com/skills）
+#   SEED_FULL          1=全量重建（清空+重导），0=增量（默认）；部署时会交互询问
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -214,17 +215,71 @@ configure_nginx() {
 }
 [ "${SKIP_NGINX:-0}" = "1" ] && log "跳过 nginx 配置" || configure_nginx
 
-# ---------- 7) 数据种子：从 CDN 下载 → 增量导入 MongoDB ----------
-# 首次：生产空 → 全导入；再次部署：默认从 CDN 拉最新 seed，仅补新增 skillId。全量重建用 SEED_FULL=1。
+# ---------- 7) 数据种子：询问更新模式 → 下载 CDN 数据 → 导入 MongoDB ----------
+# 增量（默认）：只插入新增 skillId，保留现有数据。
+# 全量：清空 skills 集合（角色+技能），从 CDN 全量重建。
+# 非交互式可预设：SEED_FULL=1（全量）或 SEED_FULL=0（增量）。
 if [ "${SKIP_SEED:-0}" != "1" ]; then
-  log "从 CDN 下载 seed（${SEED_CDN_BASE:-https://cdn2.taituai.com/totalclaw-skill-shop/seed}）"
+
+  # —— 询问更新模式 ——
+  _SEED_FULL="${SEED_FULL:-}"
+  if [ -z "$_SEED_FULL" ]; then
+    if [ -t 0 ]; then
+      echo
+      echo "==========================================="
+      echo "  数据更新模式（skills 集合含角色+技能）："
+      echo "    1) 增量更新（默认）—— 仅导入新增记录，保留现有数据"
+      echo "    2) 全量更新 ——————— 清空现有角色+技能，从 CDN 全量重建"
+      echo "==========================================="
+      read -r -p "  请选择 [1/2，回车默认增量]: " _mode </dev/tty
+      case "$_mode" in
+        2) _SEED_FULL=1 ;;
+        *) _SEED_FULL=0 ;;
+      esac
+    else
+      _SEED_FULL=0
+      log "非交互式环境，默认增量更新（全量重建：SEED_FULL=1 npm run deploy）"
+    fi
+  fi
+
+  # —— 全量：清空 skills 集合 ——
+  if [ "$_SEED_FULL" = "1" ]; then
+    log "全量模式：清空 skills 集合（角色+技能）…"
+    node -e "
+      const fs = require('fs'), path = require('path');
+      const { MongoClient } = require('mongodb');
+      function uri() {
+        if (process.env.MONGODB_URI) return process.env.MONGODB_URI;
+        try {
+          const e = fs.readFileSync(path.join(__dirname, 'api', '.env'), 'utf8');
+          const m = e.match(/^MONGODB_URI=(.+)$/m);
+          if (m) return m[1].trim().replace(/^[\"']|[\"']\$/g, '');
+        } catch {}
+        return 'mongodb://127.0.0.1:27117/totalclaw';
+      }
+      (async () => {
+        const c = new MongoClient(uri());
+        await c.connect();
+        const r = await c.db().collection('skills').deleteMany({});
+        console.log('==> 已清空 skills 集合：' + r.deletedCount + ' 条（角色+技能）');
+        await c.close();
+      })().catch(e => { console.error('!! 清空失败:', e.message); process.exit(1); });
+    " || warn "数据清空失败，继续尝试导入"
+  fi
+
+  # —— 下载 CDN seed ——
+  log "从 CDN 下载 seed（${SEED_CDN_BASE:-https://cdn2.taituai.com/skills}）"
+  SEED_CDN_BASE="${SEED_CDN_BASE:-https://cdn2.taituai.com/skills}" \
   SEED_FORCE_DOWNLOAD="${SEED_FORCE_DOWNLOAD:-1}" bash scripts/download-seed.sh \
-    || warn "CDN seed 下载失败，可手动：bash scripts/download-seed.sh"
+    || warn "CDN seed 下载失败，可手动：SEED_CDN_BASE=https://cdn2.taituai.com/skills bash scripts/download-seed.sh"
+
+  # —— 导入 ——
   if ls seed/skills/skills.ndjson.gz.part-* >/dev/null 2>&1; then
-    log "增量导入 seed/skills（仅新增 skill；全量重建用 SEED_FULL=1）"
-    bash scripts/import-seed.sh || warn "种子导入失败，可手动：bash scripts/import-seed.sh"
+    log "$([ "$_SEED_FULL" = "1" ] && echo "全量" || echo "增量")导入 seed/skills…"
+    SEED_FULL="$_SEED_FULL" bash scripts/import-seed.sh \
+      || warn "种子导入失败，可手动：SEED_FULL=$_SEED_FULL bash scripts/import-seed.sh"
   else
-    warn "无 seed 分片可导入（CDN 未就绪或 SKIP_SEED_DOWNLOAD=1 且本地无文件）"
+    warn "无 seed 分片可导入（CDN 未就绪或网络异常）"
   fi
 fi
 
