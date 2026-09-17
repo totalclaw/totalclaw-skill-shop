@@ -21,6 +21,7 @@ const internal_pay_module_1 = require("./internal-pay/internal-pay.module");
 const developer_module_1 = require("./developer/developer.module");
 const admin_module_1 = require("./admin/admin.module");
 const qiye_module_1 = require("./qiye/qiye.module");
+const install_module_1 = require("./install/install.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -40,6 +41,7 @@ exports.AppModule = AppModule = __decorate([
             developer_module_1.DeveloperModule,
             admin_module_1.AdminModule,
             qiye_module_1.QiyeModule,
+            install_module_1.InstallModule,
         ],
     })
 ], AppModule);

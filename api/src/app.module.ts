@@ -12,6 +12,7 @@ import { InternalPayModule } from './internal-pay/internal-pay.module';
 import { DeveloperModule } from './developer/developer.module';
 import { AdminModule } from './admin/admin.module';
 import { QiyeModule } from './qiye/qiye.module';
+import { InstallModule } from './install/install.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { QiyeModule } from './qiye/qiye.module';
     DeveloperModule,
     AdminModule,
     QiyeModule,
+    InstallModule,
   ],
 })
 export class AppModule {}

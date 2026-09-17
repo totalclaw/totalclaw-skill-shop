@@ -29,11 +29,11 @@ let EntitlementsController = class EntitlementsController {
         return this.entitlements.listByUser(req.user.userId);
     }
     async check(req, skillId) {
-        const id = decodeURIComponent(skillId);
+        const id = await this.skills.resolveSkillId(decodeURIComponent(skillId));
         return { owned: await this.entitlements.has(req.user.userId, id) };
     }
     async content(req, skillId) {
-        const id = decodeURIComponent(skillId);
+        const id = await this.skills.resolveSkillId(decodeURIComponent(skillId));
         const skill = await this.skills.detail(id, true);
         const paid = skill.closedSource || skill.listingType === 'paid';
         if (paid) {
@@ -53,7 +53,7 @@ let EntitlementsController = class EntitlementsController {
         return doc;
     }
     async download(req, skillId, res) {
-        const id = decodeURIComponent(skillId);
+        const id = await this.skills.resolveSkillId(decodeURIComponent(skillId));
         const dl = await this.skills.buildDownload(id);
         if (dl.closedSource || dl.listingType === 'paid') {
             const owned = await this.entitlements.has(req.user.userId, id);

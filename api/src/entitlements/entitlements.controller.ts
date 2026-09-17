@@ -26,14 +26,14 @@ export class EntitlementsController {
   @Get('check/:skillId')
   @ApiOperation({ summary: '检查是否已购买某 skill' })
   async check(@Request() req, @Param('skillId') skillId: string) {
-    const id = decodeURIComponent(skillId);
+    const id = await this.skills.resolveSkillId(decodeURIComponent(skillId));
     return { owned: await this.entitlements.has(req.user.userId, id) };
   }
 
   @Get('content/:skillId')
   @ApiOperation({ summary: '获取已购 skill 正文（站内只读查看）；收费正文按买家注入水印' })
   async content(@Request() req, @Param('skillId') skillId: string) {
-    const id = decodeURIComponent(skillId);
+    const id = await this.skills.resolveSkillId(decodeURIComponent(skillId));
     const skill = await this.skills.detail(id, true);
     const paid = skill.closedSource || skill.listingType === 'paid';
     if (paid) {
@@ -56,7 +56,10 @@ export class EntitlementsController {
   @Get('download/:skillId')
   @ApiOperation({ summary: '下载 SKILL.md（仅免费/非闭源；收费 skill 已改为站内只读查看，不提供文件下载）' })
   async download(@Request() req, @Param('skillId') skillId: string, @Res() res: Response) {
-    const id = decodeURIComponent(skillId);
+    // 路径段里的 skillId 把 `/` 编成了 `~`（见 common/skill-id.util.ts）。
+    // 只做 decodeURIComponent 时，完整 skillId 会在 buildDownload 里 404 ——
+    // 客户端据此以为"这条不存在"，而不是"需要购买"，于是走不进加密安装闭环。
+    const id = await this.skills.resolveSkillId(decodeURIComponent(skillId));
     const dl = await this.skills.buildDownload(id);
     // 收费/闭源：不再提供裸文件下载（防转售/复刻），引导到站内只读查看
     if (dl.closedSource || dl.listingType === 'paid') {

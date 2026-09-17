@@ -40,6 +40,7 @@ export declare class SkillsService implements OnModuleInit {
     }> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }>>;
+    resolveSkillId(raw: string): Promise<string>;
     buildDownloadByNameOrId(nameOrId: string): Promise<{
         filename: string;
         displayName: string;

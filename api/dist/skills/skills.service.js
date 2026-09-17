@@ -18,6 +18,7 @@ const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const skill_schema_1 = require("./schemas/skill.schema");
+const skill_id_util_1 = require("../common/skill-id.util");
 const LIST_PROJECTION = '-contentMd';
 const _cache = new Map();
 function cacheGet(key, ttlMs) {
@@ -269,10 +270,20 @@ let SkillsService = SkillsService_1 = class SkillsService {
         }
         return doc;
     }
+    async resolveSkillId(raw) {
+        for (const candidate of (0, skill_id_util_1.skillIdCandidates)(raw)) {
+            const doc = await this.skillModel.findOne({ skillId: candidate }).select('skillId').lean().exec();
+            if (doc)
+                return String(doc.skillId);
+        }
+        return String(raw || '').trim();
+    }
     async buildDownloadByNameOrId(nameOrId) {
-        const byId = await this.skillModel.findOne({ skillId: nameOrId }).lean().exec();
-        if (byId)
-            return this.buildDownload(byId.skillId);
+        for (const candidate of (0, skill_id_util_1.skillIdCandidates)(nameOrId)) {
+            const byId = await this.skillModel.findOne({ skillId: candidate }).lean().exec();
+            if (byId)
+                return this.buildDownload(byId.skillId);
+        }
         const byName = await this.findByName(nameOrId);
         return this.buildDownload(byName.skillId);
     }

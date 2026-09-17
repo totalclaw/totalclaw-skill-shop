@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Skill, SkillDocument } from './schemas/skill.schema';
 import { QuerySkillsDto } from './dto/query-skills.dto';
+import { skillIdCandidates } from '../common/skill-id.util';
 
 /** 列表/详情默认裁剪的重字段（正文按需单独取） */
 const LIST_PROJECTION = '-contentMd';
@@ -302,10 +303,29 @@ export class SkillsService implements OnModuleInit {
    * 下载 skill 文件（按名称或 skillId，逻辑同 buildDownload）。
    * 供 qiye-app 通过名称或 ID 直接安装。
    */
+  /**
+   * 路径段里的 skillId → 库里的规范 skillId。
+   *
+   * `/` 在路径段里编成 `~`（见 common/skill-id.util.ts），按「原样 → 还原 `~`」
+   * 依次试；都不命中就原样返回，让调用方照旧走它自己的 404。
+   */
+  async resolveSkillId(raw: string): Promise<string> {
+    for (const candidate of skillIdCandidates(raw)) {
+      const doc = await this.skillModel.findOne({ skillId: candidate }).select('skillId').lean().exec();
+      if (doc) return String(doc.skillId);
+    }
+    return String(raw || '').trim();
+  }
+
   async buildDownloadByNameOrId(nameOrId: string) {
-    // 先按 skillId 精确匹配，再按名称查找
-    const byId = await this.skillModel.findOne({ skillId: nameOrId }).lean().exec();
-    if (byId) return this.buildDownload(byId.skillId as string);
+    // 先按 skillId 精确匹配，再按名称查找。
+    // 路径段里的 skillId 会把 `/` 编成 `~`（见 skill-id.util.ts），只认原样
+    // 写法时「完整 skillId」一律 404，只有 slug 短名能下到 —— 候选按
+    // 「原样 → 还原 `~`」依次试。
+    for (const candidate of skillIdCandidates(nameOrId)) {
+      const byId = await this.skillModel.findOne({ skillId: candidate }).lean().exec();
+      if (byId) return this.buildDownload(byId.skillId as string);
+    }
     const byName = await this.findByName(nameOrId);
     return this.buildDownload(byName.skillId as string);
   }
