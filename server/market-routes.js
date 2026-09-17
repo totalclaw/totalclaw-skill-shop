@@ -277,7 +277,9 @@ ${footer()}`;
 
       const enc = encodeURIComponent(s.skillId);
       const slugName = (s.slug || s.skillId).replace(/[^a-zA-Z0-9._-]+/g, '-');
-      const cliCmd = `totalclaw install ${s.skillId}`;
+      // 本仓没有顶层 `totalclaw install`（顶层 uninstall 是卸载 TotalClaw 本体）。
+      // 装技能的命令是 `totalclaw skills install shop:<skillId>`，实测于 v0.68.11。
+      const cliCmd = `totalclaw skills install shop:${s.skillId}`;
       const curlFree = `curl -fsSL ${PUBLIC_ORIGIN}/api/skills/${enc}/file -o ${slugName}.md`;
       const cmdRow = (label, cmd, note) =>
         `<div class="cmd-row">
