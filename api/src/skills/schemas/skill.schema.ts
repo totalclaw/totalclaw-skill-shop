@@ -149,6 +149,11 @@ export class Skill {
   securityAudit?: Record<string, unknown>;
 }
 
+export const SKILL_COUNT_INDEX_KEY = {
+  kind: 1, reviewStatus: 1, source: 1, category: 1, listingType: 1, ownership: 1,
+} as const;
+export const SKILL_COUNT_INDEX_NAME = 'kind_reviewStatus_source_category_listingType_ownership';
+
 export type SkillDocument = HydratedDocument<Skill>;
 export const SkillSchema = SchemaFactory.createForClass(Skill);
 
@@ -161,5 +166,9 @@ SkillSchema.index({ kind: 1, category: 1 });
 SkillSchema.index({ kind: 1, source: 1 });
 SkillSchema.index({ kind: 1, listingType: 1 });
 SkillSchema.index({ kind: 1, 'stats.downloads': -1 });
+// 计数/分组聚合的覆盖索引：count 与 categories/sources 的 $match+$group 只碰这些字段，
+// 全部落在索引里即可不 FETCH 文档（avg 6.5KB × 28 万）。缺这个索引时生产单次聚合 17–20s，
+// 并把 WiredTiger 缓存挤爆，连带同库的 token-web 等应用一起慢。
+SkillSchema.index({ ...SKILL_COUNT_INDEX_KEY }, { name: SKILL_COUNT_INDEX_NAME });
 // reviewStatus / tags 的单字段索引已在各自 @Prop({ index: true }) 上声明，
 // 此处不再重复 SkillSchema.index()，否则 Mongoose 会告 "Duplicate schema index" 警告。

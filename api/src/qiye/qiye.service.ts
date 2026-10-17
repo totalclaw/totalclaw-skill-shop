@@ -3,6 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Skill, SkillDocument } from '../skills/schemas/skill.schema';
 import { QueryQiyeSkillsDto, QueryQiyeRolesDto } from './dto/query-qiye.dto';
+import { cached, filterKey } from '../common/ttl-cache.util';
+
+/** total 与筛选条件绑定缓存 5min：qiye-app 翻页时不再每页都对 28 万集合 countDocuments。 */
+const COUNT_TTL_MS = 300_000;
 
 /** 供 qiye-app 对接的字段投影（不含 contentMd 等重字段） */
 const QIYE_PROJECTION =
@@ -49,7 +53,7 @@ export class QiyeService {
         .limit(pageSize)
         .lean()
         .exec(),
-      this.skillModel.countDocuments(filter).exec(),
+      this.countCached(filter),
     ]);
 
     return {
@@ -86,7 +90,7 @@ export class QiyeService {
         .limit(pageSize)
         .lean()
         .exec(),
-      this.skillModel.countDocuments(filter).exec(),
+      this.countCached(filter),
     ]);
 
     return {
@@ -96,6 +100,10 @@ export class QiyeService {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     };
+  }
+
+  private countCached(filter: Record<string, unknown>): Promise<number> {
+    return cached(filterKey('qiye-cnt:', filter), COUNT_TTL_MS, () => this.skillModel.countDocuments(filter).exec());
   }
 }
 

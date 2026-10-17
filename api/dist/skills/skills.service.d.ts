@@ -22,8 +22,10 @@ export declare class SkillsService implements OnModuleInit {
     }> & Required<{
         _id: import("mongoose").Types.ObjectId;
     }>>;
-    categories(kind?: string, source?: string): Promise<unknown>;
-    sourcesSummary(): Promise<unknown>;
+    categories(kind?: string, source?: string): Promise<any[]>;
+    private loadCategories;
+    sourcesSummary(): Promise<any[]>;
+    private loadSourcesSummary;
     incrementDownloads(skillId: string): Promise<void>;
     buildDownload(skillId: string): Promise<{
         filename: string;

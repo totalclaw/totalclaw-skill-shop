@@ -19,19 +19,8 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const skill_schema_1 = require("./schemas/skill.schema");
 const skill_id_util_1 = require("../common/skill-id.util");
+const ttl_cache_util_1 = require("../common/ttl-cache.util");
 const LIST_PROJECTION = '-contentMd';
-const _cache = new Map();
-function cacheGet(key, ttlMs) {
-    const e = _cache.get(key);
-    if (e && Date.now() - e.at < ttlMs)
-        return e.data;
-    return undefined;
-}
-function cacheSet(key, data) {
-    if (_cache.size > 1000)
-        _cache.clear();
-    _cache.set(key, { at: Date.now(), data });
-}
 let SkillsService = SkillsService_1 = class SkillsService {
     constructor(skillModel) {
         this.skillModel = skillModel;
@@ -52,6 +41,7 @@ let SkillsService = SkillsService_1 = class SkillsService {
                 this.logger.warn(`角色 kind 修正：${r.modifiedCount} 个 role:* 文档 kind 非 'role'，已修正`);
             }
             await this.skillModel.collection.createIndex({ kind: 1, syncedAt: -1, _id: -1 }, { name: 'kind_1_syncedAt_-1__id_-1', background: true });
+            await this.skillModel.collection.createIndex({ ...skill_schema_1.SKILL_COUNT_INDEX_KEY }, { name: skill_schema_1.SKILL_COUNT_INDEX_NAME, background: true });
         }
         catch (e) {
             this.logger.warn('onModuleInit 自愈失败（不影响启动）: ' + e.message);
@@ -59,9 +49,9 @@ let SkillsService = SkillsService_1 = class SkillsService {
     }
     async list(query) {
         const ckey = 'list:' + JSON.stringify(query);
-        const cached = cacheGet(ckey, 60_000);
-        if (cached)
-            return cached;
+        const hit = (0, ttl_cache_util_1.cacheGet)(ckey, 60_000);
+        if (hit)
+            return hit;
         const filter = {};
         filter.reviewStatus = { $in: ['n/a', 'approved'] };
         filter.kind = query.kind === 'role' ? 'role' : 'skill';
@@ -100,20 +90,13 @@ let SkillsService = SkillsService_1 = class SkillsService {
         const page = query.page || 1;
         const pageSize = query.pageSize || 24;
         const skip = (page - 1) * pageSize;
-        const cntKey = 'cnt:' + JSON.stringify(filter);
-        let total = cacheGet(cntKey, 300_000);
-        const tasks = [
+        const cntKey = (0, ttl_cache_util_1.filterKey)('cnt:', filter);
+        const [items, total] = await Promise.all([
             this.skillModel.find(filter).select(LIST_PROJECTION).sort(sort).skip(skip).limit(pageSize).lean().exec(),
-        ];
-        if (total === undefined)
-            tasks.push(this.skillModel.countDocuments(filter).exec());
-        const [items, freshCount] = await Promise.all(tasks);
-        if (total === undefined) {
-            total = freshCount;
-            cacheSet(cntKey, total);
-        }
+            (0, ttl_cache_util_1.cached)(cntKey, 300_000, () => this.skillModel.countDocuments(filter).exec()),
+        ]);
         const res = { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
-        cacheSet(ckey, res);
+        (0, ttl_cache_util_1.cacheSet)(ckey, res);
         return res;
     }
     async detail(skillId, includeContent = false) {
@@ -133,9 +116,9 @@ let SkillsService = SkillsService_1 = class SkillsService {
     }
     async categories(kind, source) {
         const ck = 'cat:' + (kind === 'role' ? 'role' : 'skill') + (source ? ':' + source : '');
-        const c = cacheGet(ck, 600_000);
-        if (c)
-            return c;
+        return (0, ttl_cache_util_1.cached)(ck, 600_000, () => this.loadCategories(kind, source));
+    }
+    async loadCategories(kind, source) {
         const kindMatch = kind === 'role' ? 'role' : 'skill';
         const match = { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch };
         if (source === 'totalclaw-community') {
@@ -150,13 +133,12 @@ let SkillsService = SkillsService_1 = class SkillsService {
             { $group: { _id: '$category', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
         ]);
-        cacheSet(ck, r);
         return r;
     }
     async sourcesSummary() {
-        const c = cacheGet('sources', 600_000);
-        if (c)
-            return c;
+        return (0, ttl_cache_util_1.cached)('sources', 600_000, () => this.loadSourcesSummary());
+    }
+    async loadSourcesSummary() {
         const [realSources, communityCount] = await Promise.all([
             this.skillModel.aggregate([
                 { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
@@ -175,7 +157,6 @@ let SkillsService = SkillsService_1 = class SkillsService {
             const tcIdx = result.findIndex((r) => r._id === 'totalclaw');
             result.splice(tcIdx >= 0 ? tcIdx + 1 : 0, 0, { _id: 'totalclaw-community', count: communityCount });
         }
-        cacheSet('sources', result);
         return result;
     }
     async incrementDownloads(skillId) {
@@ -219,9 +200,9 @@ let SkillsService = SkillsService_1 = class SkillsService {
     }
     async namesList(kind, source, listingType) {
         const ck = `names:${kind ?? ''}:${source ?? ''}:${listingType ?? ''}`;
-        const cached = cacheGet(ck, 300_000);
-        if (cached)
-            return cached;
+        const hit = (0, ttl_cache_util_1.cacheGet)(ck, 300_000);
+        if (hit)
+            return hit;
         const filter = { reviewStatus: { $in: ['n/a', 'approved'] } };
         filter.kind = kind === 'role' ? 'role' : 'skill';
         if (source === 'totalclaw-community') {
@@ -240,7 +221,7 @@ let SkillsService = SkillsService_1 = class SkillsService {
             .lean()
             .exec();
         const result = { total: items.length, items };
-        cacheSet(ck, result);
+        (0, ttl_cache_util_1.cacheSet)(ck, result);
         return result;
     }
     async findByName(nameOrSlug) {

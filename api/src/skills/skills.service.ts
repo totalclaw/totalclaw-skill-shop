@@ -1,24 +1,13 @@
 import { Injectable, NotFoundException, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Skill, SkillDocument } from './schemas/skill.schema';
+import { Skill, SkillDocument, SKILL_COUNT_INDEX_KEY, SKILL_COUNT_INDEX_NAME } from './schemas/skill.schema';
 import { QuerySkillsDto } from './dto/query-skills.dto';
 import { skillIdCandidates } from '../common/skill-id.util';
+import { cacheGet, cacheSet, cached, filterKey } from '../common/ttl-cache.util';
 
 /** 列表/详情默认裁剪的重字段（正文按需单独取） */
 const LIST_PROJECTION = '-contentMd';
-
-// 简单内存 TTL 缓存：列表/分类/来源聚合是热点又重，缓存后重复请求秒回。
-const _cache = new Map<string, { at: number; data: unknown }>();
-function cacheGet<T>(key: string, ttlMs: number): T | undefined {
-  const e = _cache.get(key);
-  if (e && Date.now() - e.at < ttlMs) return e.data as T;
-  return undefined;
-}
-function cacheSet(key: string, data: unknown) {
-  if (_cache.size > 1000) _cache.clear(); // 兜底防膨胀
-  _cache.set(key, { at: Date.now(), data });
-}
 
 @Injectable()
 export class SkillsService implements OnModuleInit {
@@ -55,6 +44,10 @@ export class SkillsService implements OnModuleInit {
         { kind: 1, syncedAt: -1, _id: -1 },
         { name: 'kind_1_syncedAt_-1__id_-1', background: true },
       );
+      await this.skillModel.collection.createIndex(
+        { ...SKILL_COUNT_INDEX_KEY },
+        { name: SKILL_COUNT_INDEX_NAME, background: true },
+      );
     } catch (e) {
       this.logger.warn('onModuleInit 自愈失败（不影响启动）: ' + (e as Error).message);
     }
@@ -62,8 +55,8 @@ export class SkillsService implements OnModuleInit {
 
   async list(query: QuerySkillsDto) {
     const ckey = 'list:' + JSON.stringify(query);
-    const cached = cacheGet<unknown>(ckey, 60_000); // 列表缓存 60s
-    if (cached) return cached;
+    const hit = cacheGet<unknown>(ckey, 60_000); // 列表缓存 60s
+    if (hit) return hit;
     const filter: Record<string, unknown> = {};
     // 前台默认只展示已上架（社区源 n/a，开发者源 approved）
     filter.reviewStatus = { $in: ['n/a', 'approved'] };
@@ -107,18 +100,11 @@ export class SkillsService implements OnModuleInit {
 
     // count 与 filter（不含 page/sort）绑定单独缓存 5min：同一筛选的各页共用、且比列表缓存活得久，
     // 大幅减少「换页/换排序」时对 14 万集合重复 countDocuments 的冷开销。
-    const cntKey = 'cnt:' + JSON.stringify(filter);
-    let total = cacheGet<number>(cntKey, 300_000);
-
-    const tasks: Promise<unknown>[] = [
+    const cntKey = filterKey('cnt:', filter);
+    const [items, total] = await Promise.all([
       this.skillModel.find(filter).select(LIST_PROJECTION).sort(sort).skip(skip).limit(pageSize).lean().exec(),
-    ];
-    if (total === undefined) tasks.push(this.skillModel.countDocuments(filter).exec());
-    const [items, freshCount] = await Promise.all(tasks);
-    if (total === undefined) {
-      total = freshCount as number;
-      cacheSet(cntKey, total);
-    }
+      cached(cntKey, 300_000, () => this.skillModel.countDocuments(filter).exec()),
+    ]);
 
     const res = { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
     cacheSet(ckey, res);
@@ -146,8 +132,10 @@ export class SkillsService implements OnModuleInit {
   async categories(kind?: string, source?: string) {
     // 缓存 key 含 source，保证「按来源切换分类」时各来源各自缓存
     const ck = 'cat:' + (kind === 'role' ? 'role' : 'skill') + (source ? ':' + source : '');
-    const c = cacheGet<unknown>(ck, 600_000); // 分类缓存 10min
-    if (c) return c;
+    return cached(ck, 600_000, () => this.loadCategories(kind, source)); // 分类缓存 10min
+  }
+
+  private async loadCategories(kind?: string, source?: string) {
     const kindMatch = kind === 'role' ? 'role' : 'skill';
     const match: Record<string, unknown> = { reviewStatus: { $in: ['n/a', 'approved'] }, kind: kindMatch };
     // 虚拟来源 'totalclaw-community'：映射到 source=totalclaw + ownership=community
@@ -162,7 +150,6 @@ export class SkillsService implements OnModuleInit {
       { $group: { _id: '$category', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
     ]);
-    cacheSet(ck, r);
     return r;
   }
 
@@ -171,8 +158,10 @@ export class SkillsService implements OnModuleInit {
    * 供前端将 TotalClaw 自研技能与社区免费技能区分显示。
    */
   async sourcesSummary() {
-    const c = cacheGet<unknown>('sources', 600_000); // 来源缓存 10min
-    if (c) return c;
+    return cached('sources', 600_000, () => this.loadSourcesSummary()); // 来源缓存 10min
+  }
+
+  private async loadSourcesSummary() {
     const [realSources, communityCount] = await Promise.all([
       this.skillModel.aggregate([
         { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
@@ -192,7 +181,6 @@ export class SkillsService implements OnModuleInit {
       const tcIdx = result.findIndex((r: Record<string, unknown>) => r._id === 'totalclaw');
       result.splice(tcIdx >= 0 ? tcIdx + 1 : 0, 0, { _id: 'totalclaw-community', count: communityCount });
     }
-    cacheSet('sources', result);
     return result;
   }
 
@@ -249,8 +237,8 @@ export class SkillsService implements OnModuleInit {
    */
   async namesList(kind?: string, source?: string, listingType?: string) {
     const ck = `names:${kind ?? ''}:${source ?? ''}:${listingType ?? ''}`;
-    const cached = cacheGet<unknown>(ck, 300_000); // 5min
-    if (cached) return cached;
+    const hit = cacheGet<unknown>(ck, 300_000); // 5min
+    if (hit) return hit;
     const filter: Record<string, unknown> = { reviewStatus: { $in: ['n/a', 'approved'] } };
     filter.kind = kind === 'role' ? 'role' : 'skill';
     if (source === 'totalclaw-community') { filter.source = 'totalclaw'; filter.ownership = 'community'; }

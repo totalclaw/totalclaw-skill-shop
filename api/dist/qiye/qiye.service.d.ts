@@ -58,4 +58,5 @@ export declare class QiyeService {
         pageSize: number;
         totalPages: number;
     }>;
+    private countCached;
 }

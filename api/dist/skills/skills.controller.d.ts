@@ -5,8 +5,8 @@ export declare class SkillsController {
     private readonly skillsService;
     constructor(skillsService: SkillsService);
     list(query: QuerySkillsDto): Promise<unknown>;
-    categories(kind?: string, source?: string): Promise<unknown>;
-    sourcesSummary(): Promise<unknown>;
+    categories(kind?: string, source?: string): Promise<any[]>;
+    sourcesSummary(): Promise<any[]>;
     namesList(kind?: string, source?: string, listingType?: string): Promise<unknown>;
     findByName(name: string): Promise<import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, import("./schemas/skill.schema").Skill, {}, {}> & import("./schemas/skill.schema").Skill & {
         _id: import("mongoose").Types.ObjectId;

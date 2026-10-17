@@ -17,6 +17,8 @@ const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const skill_schema_1 = require("../skills/schemas/skill.schema");
+const ttl_cache_util_1 = require("../common/ttl-cache.util");
+const COUNT_TTL_MS = 300_000;
 const QIYE_PROJECTION = 'skillId name displayName slug source category description descriptionZh ' +
     'kind emoji color listingType pricing roleId stats.downloads -_id';
 let QiyeService = class QiyeService {
@@ -53,7 +55,7 @@ let QiyeService = class QiyeService {
                 .limit(pageSize)
                 .lean()
                 .exec(),
-            this.skillModel.countDocuments(filter).exec(),
+            this.countCached(filter),
         ]);
         return {
             items: docs.map(mapSkillItem),
@@ -84,7 +86,7 @@ let QiyeService = class QiyeService {
                 .limit(pageSize)
                 .lean()
                 .exec(),
-            this.skillModel.countDocuments(filter).exec(),
+            this.countCached(filter),
         ]);
         return {
             items: docs.map(mapRoleItem),
@@ -93,6 +95,9 @@ let QiyeService = class QiyeService {
             pageSize,
             totalPages: Math.ceil(total / pageSize),
         };
+    }
+    countCached(filter) {
+        return (0, ttl_cache_util_1.cached)((0, ttl_cache_util_1.filterKey)('qiye-cnt:', filter), COUNT_TTL_MS, () => this.skillModel.countDocuments(filter).exec());
     }
 };
 exports.QiyeService = QiyeService;

@@ -47,6 +47,15 @@ export declare class Skill {
     featured: boolean;
     securityAudit?: Record<string, unknown>;
 }
+export declare const SKILL_COUNT_INDEX_KEY: {
+    readonly kind: 1;
+    readonly reviewStatus: 1;
+    readonly source: 1;
+    readonly category: 1;
+    readonly listingType: 1;
+    readonly ownership: 1;
+};
+export declare const SKILL_COUNT_INDEX_NAME = "kind_reviewStatus_source_category_listingType_ownership";
 export type SkillDocument = HydratedDocument<Skill>;
 export declare const SkillSchema: import("mongoose").Schema<Skill, import("mongoose").Model<Skill, any, any, any, import("mongoose").Document<unknown, any, Skill, any, {}> & Skill & {
     _id: Types.ObjectId;
