@@ -42,6 +42,7 @@ let SkillsService = SkillsService_1 = class SkillsService {
             }
             await this.skillModel.collection.createIndex({ kind: 1, syncedAt: -1, _id: -1 }, { name: 'kind_1_syncedAt_-1__id_-1', background: true });
             await this.skillModel.collection.createIndex({ ...skill_schema_1.SKILL_COUNT_INDEX_KEY }, { name: skill_schema_1.SKILL_COUNT_INDEX_NAME, background: true });
+            await this.skillModel.collection.createIndex({ ...skill_schema_1.SKILL_DOWNLOADS_INDEX_KEY }, { name: skill_schema_1.SKILL_DOWNLOADS_INDEX_NAME, background: true });
         }
         catch (e) {
             this.logger.warn('onModuleInit 自愈失败（不影响启动）: ' + e.message);
@@ -93,7 +94,7 @@ let SkillsService = SkillsService_1 = class SkillsService {
         const cntKey = (0, ttl_cache_util_1.filterKey)('cnt:', filter);
         const [items, total] = await Promise.all([
             this.skillModel.find(filter).select(LIST_PROJECTION).sort(sort).skip(skip).limit(pageSize).lean().exec(),
-            (0, ttl_cache_util_1.cached)(cntKey, 300_000, () => this.skillModel.countDocuments(filter).exec()),
+            (0, ttl_cache_util_1.cached)(cntKey, 300_000, () => this.skillModel.countDocuments(filter).hint(skill_schema_1.SKILL_COUNT_INDEX_NAME).exec()),
         ]);
         const res = { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
         (0, ttl_cache_util_1.cacheSet)(ckey, res);
@@ -132,7 +133,7 @@ let SkillsService = SkillsService_1 = class SkillsService {
             { $match: match },
             { $group: { _id: '$category', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
-        ]);
+        ]).hint(skill_schema_1.SKILL_COUNT_INDEX_NAME);
         return r;
     }
     async sourcesSummary() {
@@ -144,13 +145,13 @@ let SkillsService = SkillsService_1 = class SkillsService {
                 { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
                 { $group: { _id: '$source', count: { $sum: 1 } } },
                 { $sort: { count: -1 } },
-            ]),
+            ]).hint(skill_schema_1.SKILL_COUNT_INDEX_NAME),
             this.skillModel.countDocuments({
                 reviewStatus: { $in: ['n/a', 'approved'] },
                 kind: 'skill',
                 source: 'totalclaw',
                 ownership: 'community',
-            }).exec(),
+            }).hint(skill_schema_1.SKILL_COUNT_INDEX_NAME).exec(),
         ]);
         const result = [...realSources];
         if (communityCount > 0) {
@@ -217,6 +218,7 @@ let SkillsService = SkillsService_1 = class SkillsService {
             .find(filter)
             .select('skillId name slug displayName listingType source')
             .sort({ 'stats.downloads': -1, _id: -1 })
+            .hint(skill_schema_1.SKILL_DOWNLOADS_INDEX_NAME)
             .limit(50000)
             .lean()
             .exec();

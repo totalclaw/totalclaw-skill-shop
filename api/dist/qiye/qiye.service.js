@@ -51,6 +51,7 @@ let QiyeService = class QiyeService {
                 .find(filter)
                 .select(QIYE_PROJECTION)
                 .sort({ 'stats.downloads': -1, _id: -1 })
+                .hint(skill_schema_1.SKILL_DOWNLOADS_INDEX_NAME)
                 .skip(skip)
                 .limit(pageSize)
                 .lean()
@@ -82,6 +83,7 @@ let QiyeService = class QiyeService {
                 .find(filter)
                 .select(QIYE_PROJECTION)
                 .sort({ 'stats.downloads': -1, _id: -1 })
+                .hint(skill_schema_1.SKILL_DOWNLOADS_INDEX_NAME)
                 .skip(skip)
                 .limit(pageSize)
                 .lean()
@@ -97,7 +99,7 @@ let QiyeService = class QiyeService {
         };
     }
     countCached(filter) {
-        return (0, ttl_cache_util_1.cached)((0, ttl_cache_util_1.filterKey)('qiye-cnt:', filter), COUNT_TTL_MS, () => this.skillModel.countDocuments(filter).exec());
+        return (0, ttl_cache_util_1.cached)((0, ttl_cache_util_1.filterKey)('qiye-cnt:', filter), COUNT_TTL_MS, () => this.skillModel.countDocuments(filter).hint(skill_schema_1.SKILL_COUNT_INDEX_NAME).exec());
     }
 };
 exports.QiyeService = QiyeService;

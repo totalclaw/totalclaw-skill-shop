@@ -1,7 +1,11 @@
 import { Injectable, NotFoundException, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Skill, SkillDocument, SKILL_COUNT_INDEX_KEY, SKILL_COUNT_INDEX_NAME } from './schemas/skill.schema';
+import {
+  Skill, SkillDocument,
+  SKILL_COUNT_INDEX_KEY, SKILL_COUNT_INDEX_NAME,
+  SKILL_DOWNLOADS_INDEX_KEY, SKILL_DOWNLOADS_INDEX_NAME,
+} from './schemas/skill.schema';
 import { QuerySkillsDto } from './dto/query-skills.dto';
 import { skillIdCandidates } from '../common/skill-id.util';
 import { cacheGet, cacheSet, cached, filterKey } from '../common/ttl-cache.util';
@@ -47,6 +51,10 @@ export class SkillsService implements OnModuleInit {
       await this.skillModel.collection.createIndex(
         { ...SKILL_COUNT_INDEX_KEY },
         { name: SKILL_COUNT_INDEX_NAME, background: true },
+      );
+      await this.skillModel.collection.createIndex(
+        { ...SKILL_DOWNLOADS_INDEX_KEY },
+        { name: SKILL_DOWNLOADS_INDEX_NAME, background: true },
       );
     } catch (e) {
       this.logger.warn('onModuleInit 自愈失败（不影响启动）: ' + (e as Error).message);
@@ -103,7 +111,7 @@ export class SkillsService implements OnModuleInit {
     const cntKey = filterKey('cnt:', filter);
     const [items, total] = await Promise.all([
       this.skillModel.find(filter).select(LIST_PROJECTION).sort(sort).skip(skip).limit(pageSize).lean().exec(),
-      cached(cntKey, 300_000, () => this.skillModel.countDocuments(filter).exec()),
+      cached(cntKey, 300_000, () => this.skillModel.countDocuments(filter).hint(SKILL_COUNT_INDEX_NAME).exec()),
     ]);
 
     const res = { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
@@ -145,11 +153,12 @@ export class SkillsService implements OnModuleInit {
     } else if (source) {
       match.source = source;
     }
+    // hint：计划器会挑 kind_1 再逐条 FETCH（生产 2.3s）；钉到覆盖索引后只扫索引（~0.4s）
     const r = await this.skillModel.aggregate([
       { $match: match },
       { $group: { _id: '$category', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
-    ]);
+    ]).hint(SKILL_COUNT_INDEX_NAME);
     return r;
   }
 
@@ -167,13 +176,13 @@ export class SkillsService implements OnModuleInit {
         { $match: { reviewStatus: { $in: ['n/a', 'approved'] }, kind: 'skill' } },
         { $group: { _id: '$source', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
-      ]),
+      ]).hint(SKILL_COUNT_INDEX_NAME),
       this.skillModel.countDocuments({
         reviewStatus: { $in: ['n/a', 'approved'] },
         kind: 'skill',
         source: 'totalclaw',
         ownership: 'community',
-      }).exec(),
+      }).hint(SKILL_COUNT_INDEX_NAME).exec(),
     ]);
     // 插入虚拟来源（排在 totalclaw 后面）
     const result = [...realSources];
@@ -248,6 +257,7 @@ export class SkillsService implements OnModuleInit {
       .find(filter)
       .select('skillId name slug displayName listingType source')
       .sort({ 'stats.downloads': -1, _id: -1 })
+      .hint(SKILL_DOWNLOADS_INDEX_NAME)
       .limit(50000)
       .lean()
       .exec();

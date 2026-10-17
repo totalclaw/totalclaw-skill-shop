@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SkillSchema = exports.SKILL_COUNT_INDEX_NAME = exports.SKILL_COUNT_INDEX_KEY = exports.Skill = void 0;
+exports.SkillSchema = exports.SKILL_DOWNLOADS_INDEX_NAME = exports.SKILL_DOWNLOADS_INDEX_KEY = exports.SKILL_COUNT_INDEX_NAME = exports.SKILL_COUNT_INDEX_KEY = exports.Skill = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 let Skill = class Skill {
@@ -181,12 +181,14 @@ exports.SKILL_COUNT_INDEX_KEY = {
     kind: 1, reviewStatus: 1, source: 1, category: 1, listingType: 1, ownership: 1,
 };
 exports.SKILL_COUNT_INDEX_NAME = 'kind_reviewStatus_source_category_listingType_ownership';
+exports.SKILL_DOWNLOADS_INDEX_KEY = { kind: 1, 'stats.downloads': -1, _id: -1 };
+exports.SKILL_DOWNLOADS_INDEX_NAME = 'kind_downloads_id';
 exports.SkillSchema = mongoose_1.SchemaFactory.createForClass(Skill);
 exports.SkillSchema.index({ kind: 1, syncedAt: -1, _id: -1 });
 exports.SkillSchema.index({ kind: 1, syncedAt: -1 });
 exports.SkillSchema.index({ kind: 1, category: 1 });
 exports.SkillSchema.index({ kind: 1, source: 1 });
 exports.SkillSchema.index({ kind: 1, listingType: 1 });
-exports.SkillSchema.index({ kind: 1, 'stats.downloads': -1 });
+exports.SkillSchema.index({ ...exports.SKILL_DOWNLOADS_INDEX_KEY }, { name: exports.SKILL_DOWNLOADS_INDEX_NAME });
 exports.SkillSchema.index({ ...exports.SKILL_COUNT_INDEX_KEY }, { name: exports.SKILL_COUNT_INDEX_NAME });
 //# sourceMappingURL=skill.schema.js.map

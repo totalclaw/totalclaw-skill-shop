@@ -154,6 +154,9 @@ export const SKILL_COUNT_INDEX_KEY = {
 } as const;
 export const SKILL_COUNT_INDEX_NAME = 'kind_reviewStatus_source_category_listingType_ownership';
 
+export const SKILL_DOWNLOADS_INDEX_KEY = { kind: 1, 'stats.downloads': -1, _id: -1 } as const;
+export const SKILL_DOWNLOADS_INDEX_NAME = 'kind_downloads_id';
+
 export type SkillDocument = HydratedDocument<Skill>;
 export const SkillSchema = SchemaFactory.createForClass(Skill);
 
@@ -165,7 +168,9 @@ SkillSchema.index({ kind: 1, syncedAt: -1 });
 SkillSchema.index({ kind: 1, category: 1 });
 SkillSchema.index({ kind: 1, source: 1 });
 SkillSchema.index({ kind: 1, listingType: 1 });
-SkillSchema.index({ kind: 1, 'stats.downloads': -1 });
+// 按下载量排序（qiye 列表、namesList）带 _id 做稳定 tiebreak —— 绝大多数文档下载量为 0，
+// 索引必须包含 _id 才能直接满足排序；否则计划器会挑别的索引再内存 SORT 24 万条（生产实测 11s）。
+SkillSchema.index({ ...SKILL_DOWNLOADS_INDEX_KEY }, { name: SKILL_DOWNLOADS_INDEX_NAME });
 // 计数/分组聚合的覆盖索引：count 与 categories/sources 的 $match+$group 只碰这些字段，
 // 全部落在索引里即可不 FETCH 文档（avg 6.5KB × 28 万）。缺这个索引时生产单次聚合 17–20s，
 // 并把 WiredTiger 缓存挤爆，连带同库的 token-web 等应用一起慢。

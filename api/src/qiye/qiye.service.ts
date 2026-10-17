@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Skill, SkillDocument } from '../skills/schemas/skill.schema';
+import {
+  Skill, SkillDocument, SKILL_COUNT_INDEX_NAME, SKILL_DOWNLOADS_INDEX_NAME,
+} from '../skills/schemas/skill.schema';
 import { QueryQiyeSkillsDto, QueryQiyeRolesDto } from './dto/query-qiye.dto';
 import { cached, filterKey } from '../common/ttl-cache.util';
 
@@ -49,6 +51,8 @@ export class QiyeService {
         .find(filter)
         .select(QIYE_PROJECTION)
         .sort({ 'stats.downloads': -1, _id: -1 })
+        // 不钉索引时计划器挑覆盖计数索引再内存 SORT 24 万条（生产 11s）；钉到下载量索引 ~1ms
+        .hint(SKILL_DOWNLOADS_INDEX_NAME)
         .skip(skip)
         .limit(pageSize)
         .lean()
@@ -86,6 +90,8 @@ export class QiyeService {
         .find(filter)
         .select(QIYE_PROJECTION)
         .sort({ 'stats.downloads': -1, _id: -1 })
+        // 不钉索引时计划器挑覆盖计数索引再内存 SORT 24 万条（生产 11s）；钉到下载量索引 ~1ms
+        .hint(SKILL_DOWNLOADS_INDEX_NAME)
         .skip(skip)
         .limit(pageSize)
         .lean()
@@ -103,7 +109,7 @@ export class QiyeService {
   }
 
   private countCached(filter: Record<string, unknown>): Promise<number> {
-    return cached(filterKey('qiye-cnt:', filter), COUNT_TTL_MS, () => this.skillModel.countDocuments(filter).exec());
+    return cached(filterKey('qiye-cnt:', filter), COUNT_TTL_MS, () => this.skillModel.countDocuments(filter).hint(SKILL_COUNT_INDEX_NAME).exec());
   }
 }
 

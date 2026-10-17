@@ -56,6 +56,12 @@ export declare const SKILL_COUNT_INDEX_KEY: {
     readonly ownership: 1;
 };
 export declare const SKILL_COUNT_INDEX_NAME = "kind_reviewStatus_source_category_listingType_ownership";
+export declare const SKILL_DOWNLOADS_INDEX_KEY: {
+    readonly kind: 1;
+    readonly 'stats.downloads': -1;
+    readonly _id: -1;
+};
+export declare const SKILL_DOWNLOADS_INDEX_NAME = "kind_downloads_id";
 export type SkillDocument = HydratedDocument<Skill>;
 export declare const SkillSchema: import("mongoose").Schema<Skill, import("mongoose").Model<Skill, any, any, any, import("mongoose").Document<unknown, any, Skill, any, {}> & Skill & {
     _id: Types.ObjectId;
