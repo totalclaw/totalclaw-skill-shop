@@ -28,6 +28,9 @@ const apps = [
     instances: 1,
     exec_mode: 'fork',
     autorestart: true,
+    // 4G 单机与 Mongo/其它 node 应用共用内存：SSR 稳态堆 ~22M，给 128M 上限，RSS 超 200M 重启
+    node_args: '--max-old-space-size=128',
+    max_memory_restart: '200M',
     max_restarts: 20,
     min_uptime: '5s',
     env: {
@@ -47,6 +50,8 @@ if (process.env.SKIP_API !== '1') {
     instances: 1,
     exec_mode: 'fork',
     autorestart: true,
+    // 稳态堆 ~57M（含 skills 列表/计数的进程内缓存）；堆上限 256M
+    node_args: '--max-old-space-size=256',
     max_memory_restart: '400M',
     env: {
       ...apiEnvFromFile,
