@@ -26,24 +26,12 @@ export class SkillsService implements OnModuleInit {
    *  1) 把历史 raw 导入遗留的 kind 缺失/为 null 的「技能」补成 'skill'——否则列表查询用精确 kind:'skill'
    *     会漏掉这些文档；且精确匹配才能走 {kind,syncedAt,_id} 索引（避免 14 万文档内存排序）。
    *  2) 确保关键复合索引存在（驱动 insert 的种子库不会自动建）。
+   * 索引同步等待；1) 的数据修正在后台跑（healKinds），不阻塞启动。
    * 部署后无需重导种子，API 一启动即把生产数据与查询口径对齐。
    */
   async onModuleInit() {
+    // 索引先建并等待：count/列表查询会 hint 这些索引，缺了会直接报错。
     try {
-      // 仅补全 skillId 不以 'role:' 开头的文档，防止角色文档被误改为 skill。
-      const skillFilter = { kind: null, skillId: { $not: /^role:/ } };
-      const pending = await this.skillModel.countDocuments(skillFilter).exec();
-      if (pending > 0) {
-        const r = await this.skillModel.updateMany(skillFilter, { $set: { kind: 'skill' } }).exec();
-        this.logger.log(`kind 补全：${r.modifiedCount} 个无 kind 文档 → 'skill'`);
-      }
-      // 将 skillId 以 'role:' 开头但 kind 不是 'role' 的文档修正为 role
-      const roleFilter = { skillId: /^role:/, kind: { $ne: 'role' } };
-      const roleCount = await this.skillModel.countDocuments(roleFilter).exec();
-      if (roleCount > 0) {
-        const r = await this.skillModel.updateMany(roleFilter, { $set: { kind: 'role' } }).exec();
-        this.logger.warn(`角色 kind 修正：${r.modifiedCount} 个 role:* 文档 kind 非 'role'，已修正`);
-      }
       await this.skillModel.collection.createIndex(
         { kind: 1, syncedAt: -1, _id: -1 },
         { name: 'kind_1_syncedAt_-1__id_-1', background: true },
@@ -57,7 +45,27 @@ export class SkillsService implements OnModuleInit {
         { name: SKILL_DOWNLOADS_INDEX_NAME, background: true },
       );
     } catch (e) {
-      this.logger.warn('onModuleInit 自愈失败（不影响启动）: ' + (e as Error).message);
+      this.logger.warn('onModuleInit 建索引失败（不影响启动）: ' + (e as Error).message);
+    }
+    // 数据自愈放后台、不阻塞启动：生产上 role:* 那条计数冷启动要 9.5s，每次重启/部署都卡一次。
+    void this.healKinds().catch((e: Error) =>
+      this.logger.warn('kind 自愈失败（不影响服务）: ' + e.message),
+    );
+  }
+
+  /** 只需判断「有没有要修的」，用 exists 命中第一条即停，不再 countDocuments 全量计数。 */
+  private async healKinds() {
+    // 仅补全 skillId 不以 'role:' 开头的文档，防止角色文档被误改为 skill。
+    const skillFilter = { kind: null, skillId: { $not: /^role:/ } };
+    if (await this.skillModel.exists(skillFilter)) {
+      const r = await this.skillModel.updateMany(skillFilter, { $set: { kind: 'skill' } }).exec();
+      this.logger.log(`kind 补全：${r.modifiedCount} 个无 kind 文档 → 'skill'`);
+    }
+    // 将 skillId 以 'role:' 开头但 kind 不是 'role' 的文档修正为 role
+    const roleFilter = { skillId: /^role:/, kind: { $ne: 'role' } };
+    if (await this.skillModel.exists(roleFilter)) {
+      const r = await this.skillModel.updateMany(roleFilter, { $set: { kind: 'role' } }).exec();
+      this.logger.warn(`角色 kind 修正：${r.modifiedCount} 个 role:* 文档 kind 非 'role'，已修正`);
     }
   }
 

@@ -28,24 +28,25 @@ let SkillsService = SkillsService_1 = class SkillsService {
     }
     async onModuleInit() {
         try {
-            const skillFilter = { kind: null, skillId: { $not: /^role:/ } };
-            const pending = await this.skillModel.countDocuments(skillFilter).exec();
-            if (pending > 0) {
-                const r = await this.skillModel.updateMany(skillFilter, { $set: { kind: 'skill' } }).exec();
-                this.logger.log(`kind 补全：${r.modifiedCount} 个无 kind 文档 → 'skill'`);
-            }
-            const roleFilter = { skillId: /^role:/, kind: { $ne: 'role' } };
-            const roleCount = await this.skillModel.countDocuments(roleFilter).exec();
-            if (roleCount > 0) {
-                const r = await this.skillModel.updateMany(roleFilter, { $set: { kind: 'role' } }).exec();
-                this.logger.warn(`角色 kind 修正：${r.modifiedCount} 个 role:* 文档 kind 非 'role'，已修正`);
-            }
             await this.skillModel.collection.createIndex({ kind: 1, syncedAt: -1, _id: -1 }, { name: 'kind_1_syncedAt_-1__id_-1', background: true });
             await this.skillModel.collection.createIndex({ ...skill_schema_1.SKILL_COUNT_INDEX_KEY }, { name: skill_schema_1.SKILL_COUNT_INDEX_NAME, background: true });
             await this.skillModel.collection.createIndex({ ...skill_schema_1.SKILL_DOWNLOADS_INDEX_KEY }, { name: skill_schema_1.SKILL_DOWNLOADS_INDEX_NAME, background: true });
         }
         catch (e) {
-            this.logger.warn('onModuleInit 自愈失败（不影响启动）: ' + e.message);
+            this.logger.warn('onModuleInit 建索引失败（不影响启动）: ' + e.message);
+        }
+        void this.healKinds().catch((e) => this.logger.warn('kind 自愈失败（不影响服务）: ' + e.message));
+    }
+    async healKinds() {
+        const skillFilter = { kind: null, skillId: { $not: /^role:/ } };
+        if (await this.skillModel.exists(skillFilter)) {
+            const r = await this.skillModel.updateMany(skillFilter, { $set: { kind: 'skill' } }).exec();
+            this.logger.log(`kind 补全：${r.modifiedCount} 个无 kind 文档 → 'skill'`);
+        }
+        const roleFilter = { skillId: /^role:/, kind: { $ne: 'role' } };
+        if (await this.skillModel.exists(roleFilter)) {
+            const r = await this.skillModel.updateMany(roleFilter, { $set: { kind: 'role' } }).exec();
+            this.logger.warn(`角色 kind 修正：${r.modifiedCount} 个 role:* 文档 kind 非 'role'，已修正`);
         }
     }
     async list(query) {

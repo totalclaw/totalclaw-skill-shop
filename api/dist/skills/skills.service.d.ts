@@ -7,6 +7,7 @@ export declare class SkillsService implements OnModuleInit {
     private readonly logger;
     constructor(skillModel: Model<SkillDocument>);
     onModuleInit(): Promise<void>;
+    private healKinds;
     list(query: QuerySkillsDto): Promise<unknown>;
     detail(skillId: string, includeContent?: boolean): Promise<import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, Skill, {}, {}> & Skill & {
         _id: import("mongoose").Types.ObjectId;
