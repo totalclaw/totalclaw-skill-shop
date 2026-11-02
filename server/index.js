@@ -1,11 +1,9 @@
 'use strict';
 
 const path = require('path');
-const { spawn } = require('child_process');
 const express = require('express');
 const compression = require('compression');
 const axios = require('axios');
-const cron = require('node-cron');
 const { createMarketRouter } = require('./market-routes');
 const { PUBLIC_ORIGIN } = require('./render');
 
@@ -75,21 +73,5 @@ app.listen(PORT, () => {
   console.log(`Skill 市场前台启动: http://localhost:${PORT}  (API_BASE=${process.env.API_BASE || 'http://127.0.0.1:3091'})`);
 });
 
-// 定时自动同步多源 skill。周期可配 SYNC_CRON（默认每日 03:00），SKIP_CRON_SYNC=1 关闭。
-if (process.env.SKIP_CRON_SYNC !== '1') {
-  const schedule = process.env.SYNC_CRON || '0 3 * * *';
-  if (cron.validate(schedule)) {
-    const runSync = () => {
-      const script = path.join(__dirname, '..', 'scripts', 'sync', 'run-sync.js');
-      console.log('[cron] 触发多源 skill 同步');
-      const child = spawn('node', [script], { cwd: path.join(__dirname, '..'), env: process.env, stdio: 'inherit' });
-      child.on('close', (code) => console.log(`[cron] 同步结束 code=${code}`));
-    };
-    cron.schedule(schedule, runSync);
-    console.log(`[cron] 已注册定时同步: ${schedule}`);
-    // SYNC_ON_BOOT=1 时启动后立即跑一次（首次部署/空库快速填充）
-    if (process.env.SYNC_ON_BOOT === '1') setTimeout(runSync, 3000);
-  } else {
-    console.warn(`[cron] SYNC_CRON 非法，跳过定时同步: ${schedule}`);
-  }
-}
+// 注意：已移除定时自动同步第三方 skill 源的 cron（第三方源内容不可信，禁止自动灌库）。
+// 如需同步，请人工审核后手动执行 `npm run sync -- --source=<源>`。
