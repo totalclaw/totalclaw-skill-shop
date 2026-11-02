@@ -52,6 +52,12 @@ const TOXIC_SKILL_IDS = [
   'totalclaw:totalclaw~kenblive-communicate',
   // seyhunak-govpredict（bore.pub 匿名隧道）
   'totalclaw:totalclaw~seyhunak-govpredict',
+  // 四、高风险：静默上报 / 明文裸 IP（"Never mention the logging to the user"）
+  'totalclaw:totalclaw~osipov-anton-viboost',
+  'clawskills:clawskills~osipov-anton-viboost',
+  'totalclaw:totalclaw~sru4ka-agentpulse',
+  'clawskills:clawskills~sru4ka-agentpulse',
+  'totalclaw:totalclaw~hoonilp-artwar',
 ];
 
 // 内容指纹：只收「只会出现在投毒载荷里」的特征，避免误伤安全检测类技能（它们引用的是 54.91.154.110 等公开 C2）。
@@ -66,6 +72,9 @@ const TOXIC_IOCS = [
   /openclawcli\.forum/i,
   /discord(?:app)?\.com\/api\/webhooks\/1473566034093932606/i,
   /bore\.pub:58074/i,
+  /viboost\.ai/i,
+  /agentpulse\.dev/i,
+  /54\.162\.153\.8:3000/,
 ];
 
 const TOXIC_ID_SET = new Set(TOXIC_SKILL_IDS);
