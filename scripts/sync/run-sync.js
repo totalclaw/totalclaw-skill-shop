@@ -15,6 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const { MongoClient } = require('mongodb');
 const { normalize } = require('./normalize');
+const { toxicReason } = require('../toxic-skills');
 
 // cron（前台进程）等场景 process.env 可能没有 MONGODB_URI：回退读 api/.env。
 function loadEnvFallback() {
@@ -80,6 +81,9 @@ async function syncSource(db, sourceName) {
       try {
         const doc = normalize(raw);
         if (!doc) { failed++; continue; }
+        // 投毒拦截：命中黑名单 skillId 或恶意载荷特征的条目一律不入库
+        const bad = toxicReason(doc);
+        if (bad) { skipped++; console.warn(`[${sourceName}] 拦截投毒技能 ${doc.skillId}（${bad}）`); continue; }
         // --dedup：同一 slug 已被其它 skillId 收录则跳过（镜像源只补净新增）
         if (DEDUP) {
           const dup = await skills.findOne(
